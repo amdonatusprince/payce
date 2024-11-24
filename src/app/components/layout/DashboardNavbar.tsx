@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { BellIcon } from '@heroicons/react/24/outline';
+import Image from 'next/image';
+import Logo from '../../../../public/payceLogo.png';
 
 export const DashboardNavbar = () => {
   const [notifications] = useState(5); // Example notification count
@@ -11,7 +13,13 @@ export const DashboardNavbar = () => {
       <div className="h-full px-4 flex items-center justify-between">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2">
-            <img src="/logo.svg" alt="Logo" className="h-8 w-8" />
+            <Image
+              src={Logo}
+              alt="Logo"
+              width={32}
+              height={32}
+              priority
+            />
             <span className="text-xl font-bold">Payce</span>
           </Link>
         </div>

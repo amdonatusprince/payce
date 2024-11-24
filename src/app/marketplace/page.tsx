@@ -1,8 +1,10 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { MarketplaceFilters } from '../components/marketplace/MarketplaceFilters';
 import { ProductGrid } from '../components/marketplace/ProductGrid';
 import { CategoryNav } from '../components/marketplace/CategoryNav';
+import payceLogo from '../../../public/payceLogo.png';
 
 export default function MarketplacePage() {
   return (
@@ -18,10 +20,12 @@ export default function MarketplacePage() {
 
         <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
           <div className="flex items-center gap-3">
-            <img 
-              src="/logo.svg" 
-              alt="Payce Logo" 
-              className="w-8 h-8"
+            <Image 
+              src={payceLogo}
+              alt="Payce Logo"
+              width={32}
+              height={32}
+              priority
             />
             <h1 className="text-2xl font-bold">Payce Marketplace</h1>
           </div>
