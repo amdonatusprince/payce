@@ -10,6 +10,9 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: "Payce - Decentralized Payment Infrastructure",
   description: "The first entirely on-chain autonomous and decentralised payment infrastructure for businesses and merchants.",
+  icons: {
+    icon: '/payceLogo.png',
+  },
 };
 
 export default function RootLayout({

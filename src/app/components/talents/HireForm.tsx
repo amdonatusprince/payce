@@ -1,4 +1,11 @@
-export const HireForm = () => {
+import type { Talent } from './TalentCard';
+
+interface HireFormProps {
+  talent:  Talent;
+  onClose: () => void;
+}
+
+export const HireForm: React.FC<HireFormProps> = ({ talent, onClose }) => {
   return (
     <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-sm p-6">
       <h2 className="text-xl font-semibold mb-6">Hire Talent</h2>
