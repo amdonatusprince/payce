@@ -17,7 +17,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
   { name: 'Payments', href: '/dashboard/payments', icon: CreditCardIcon },
   { name: 'Invoices', href: '/dashboard/invoices', icon: DocumentTextIcon },
-  { name: 'Talents', href: '/talents', icon: UsersIcon },
+  { name: 'Talent Hub', href: '/talents', icon: UsersIcon },
   { name: 'Marketplace', href: '/marketplace', icon: UserGroupIcon },
   { name: 'Account Statement', href: '/dashboard/statement', icon: DocumentChartBarIcon },
   // { name: 'Analytics', href: '/dashboard/analytics', icon: ChartBarIcon },

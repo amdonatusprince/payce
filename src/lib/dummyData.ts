@@ -5,15 +5,32 @@ export const dummyProducts: Product[] = [
     id: '1',
     title: 'Premium Website Template',
     description: 'Modern and responsive website template for businesses',
-    price: 99,
+    price: 27,
     currency: 'USDC',
     type: 'digital',
-    image: '/images/products/template1.jpg',
+    image: '/assets/digitaldreams.jpg',
+    rating: 4.8,
+    seller: {
+      id: '1',
+      name: 'Jane Writes',
+      avatar: '/assets/profiles/Jane-writes.jpg',
+      rating: 4.9
+    }
+  },
+
+  {
+    id: '2',
+    title: 'Premium Website Template',
+    description: 'Modern and responsive website template for businesses',
+    price: 99,
+    currency: 'USDC',
+    type: 'service',
+    image: '/assets/digitaldreams.jpg',
     rating: 4.8,
     seller: {
       id: '1',
       name: 'Digital Studios',
-      avatar: '/images/avatars/seller1.jpg',
+      avatar: '/assets/profiles/Jane-writes.jpg',
       rating: 4.9
     }
   },

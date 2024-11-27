@@ -1,13 +1,21 @@
+'use client';
 import { PaymentForm } from '@/app/components/payments/PaymentForm';
+import { useRouter } from 'next/navigation';
 
 export default function PaymentsPage() {
+  const router = useRouter();
+  
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-semibold">Payments</h1>
         <div className="flex gap-3">
-          <button className="btn-outline">Transaction History</button>
-          <button className="btn-primary">New Payment</button>
+          <button 
+            className="btn-secondary"
+            onClick={() => router.push('/dashboard/statement')}
+          >
+            Transaction History
+          </button>
         </div>
       </div>
 
