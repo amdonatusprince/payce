@@ -1,6 +1,7 @@
 'use client';
 import { PaymentForm } from '@/app/components/payments/PaymentForm';
 import { useRouter } from 'next/navigation';
+import { RecentPaymentTransactions } from '@/app/components/transactions/RecentPaymentTransaction';
 
 export default function PaymentsPage() {
   const router = useRouter();
@@ -34,8 +35,7 @@ export default function PaymentsPage() {
           <h2 className="text-lg font-medium">Recent Transactions</h2>
         </div>
         <div className="p-6">
-          {/* You can add a TransactionList component here */}
-          <p className="text-gray-500">No recent transactions</p>
+          <RecentPaymentTransactions />
         </div>
       </div>
     </div>

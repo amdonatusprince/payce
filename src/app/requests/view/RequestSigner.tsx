@@ -12,8 +12,20 @@ export function walletClientToSigner(walletClient: WalletClient) {
     name: chain.name,
     ensAddress: chain.contracts?.ensRegistry?.address,
   };
+
+  // Create provider with the current chain's network
   const provider = new providers.Web3Provider(transport, network);
+  
+  // Get signer for the current account
   const signer = provider.getSigner(account.address);
+  
+  // Verify the signer is connected to the correct chain
+  signer.provider.getNetwork().then(signerNetwork => {
+    if (signerNetwork.chainId !== chain.id) {
+      throw new Error(`Signer chain (${signerNetwork.chainId}) doesn't match current chain (${chain.id})`);
+    }
+  });
+
   return signer;
 }
 

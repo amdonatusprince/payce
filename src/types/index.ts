@@ -42,9 +42,9 @@ export interface Product {
   image: string;
   rating: number;
   seller: {
-    id: string;
     name: string;
     avatar: string;
     rating: number;
+    address: string;
   };
 }

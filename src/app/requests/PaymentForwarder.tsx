@@ -1,9 +1,9 @@
 import { Types } from "@requestnetwork/request-client.js";
-import { useWalletClient } from "wagmi";
+import { type WalletClient } from 'viem';
 import { 
     deploySingleRequestForwarder,
     payRequestWithSingleRequestForwarder
- } from "@requestnetwork/payment-processor";
+} from "@requestnetwork/payment-processor";
 import { createRequest } from "./CreateRequest";
 import { providers } from 'ethers';
 import { CurrencyTypes } from "@requestnetwork/types";
@@ -13,7 +13,7 @@ interface PaymentParams {
   payerAddress: string;
   expectedAmount: string;
   currency: {
-    type: Types.RequestLogic.CURRENCY;
+    type: Types.RequestLogic.CURRENCY.ERC20;
     value: string;
     network: CurrencyTypes.ChainName;
     decimals: number;
@@ -21,27 +21,41 @@ interface PaymentParams {
   recipientAddress: string;
   reason: string;
   dueDate: string;
+  walletClient: WalletClient;
+  contentData?: {
+    transactionType: 'single_forwarder' | 'batch_forwarder';
+    paymentDetails: {
+      reason?: string;
+      dueDate?: string;
+    };
+    metadata: {
+      createdAt: string;
+      builderId: string;
+      createdBy: string;
+      [key: string]: any;
+    };
+    [key: string]: any;
+  };
 }
 
 interface PayWithForwarderParams {
     forwarderAddress: string;
     amount: string;
     decimals: number;
-  }
+    walletClient: WalletClient;
+}
 
-export const PaymentForwarder = async ({ params }: { params: PaymentParams }) => {
-  const { data: walletClient } = useWalletClient();
-
-  if (!walletClient) {
+export const createPaymentRequest = async ({ params }: { params: PaymentParams }) => {
+  if (!params.walletClient) {
     throw new Error("Wallet client not connected");
   }
 
   try {
-    const { request } = await createRequest({ ...params, walletClient });
+    const { request } = await createRequest({ ...params });
     const requestData = request.getData();
     const forwarderAddress = await deploySingleRequestForwarder(
       requestData,
-      new providers.Web3Provider(walletClient.transport).getSigner()
+      new providers.Web3Provider(params.walletClient.transport).getSigner()
     );
 
     return forwarderAddress;
@@ -51,15 +65,13 @@ export const PaymentForwarder = async ({ params }: { params: PaymentParams }) =>
   }
 }
 
-export const PayWithRequestForwarder = async ({ params }: { params: PayWithForwarderParams }) => {
-    const { data: walletClient } = useWalletClient();
-  
-    if (!walletClient) {
+export const payWithRequestForwarder = async ({ params }: { params: PayWithForwarderParams }) => {
+    if (!params.walletClient) {
       throw new Error("Wallet client not connected");
     }
-  
+
     try {
-      const signer = new providers.Web3Provider(walletClient.transport).getSigner();
+      const signer = new providers.Web3Provider(params.walletClient.transport).getSigner();
       const paymentAmount = parseUnits(params.amount, params.decimals).toString();
       
       const result = await payRequestWithSingleRequestForwarder(
@@ -67,10 +79,10 @@ export const PayWithRequestForwarder = async ({ params }: { params: PayWithForwa
         signer,
         paymentAmount
       );
-  
+
       return result;
     } catch (error) {
       console.error("Error paying with forwarder:", error);
       throw error;
     }
-  }
+}

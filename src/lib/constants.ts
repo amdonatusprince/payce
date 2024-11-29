@@ -1,13 +1,16 @@
-export const supportedCurrencies = [
-    'USDC',
-    'USDT',
-    'ETH',
-    'DAI',
-    'WBTC'
-  ] as const;
+export const supportedCurrencies = {
+  'ETH-sepolia-sepolia': { decimals: 18 },
+  'ETH-mainnet': { decimals: 18 },
+  'ETH-base': { decimals: 18 },
+  'USDT-base': { decimals: 6 },
+  'USDC-base': { decimals: 6 },
+  'USDC-mainnet': { decimals: 6 },
+
+} as const;
   
   export const supportedChains = [
-    'Ethereum',
+    'Mainnet',
+    'Sepolia',
     'Polygon',
     'Arbitrum',
     'Optimism',
@@ -38,7 +41,7 @@ export const supportedCurrencies = [
   ] as const;
   
   // Add TypeScript types for the constants
-  export type SupportedCurrency = typeof supportedCurrencies[number];
+  export type SupportedCurrency = keyof typeof supportedCurrencies;
   export type SupportedChain = typeof supportedChains[number];
   export type PaymentStatus = typeof paymentStatuses[number];
   export type InvoiceStatus = typeof invoiceStatuses[number];

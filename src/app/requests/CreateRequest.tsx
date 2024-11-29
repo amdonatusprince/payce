@@ -1,6 +1,6 @@
 import { Web3SignatureProvider } from "@requestnetwork/web3-signature";
 import { RequestNetwork, Types, Utils, } from "@requestnetwork/request-client.js";
-import { parseUnits, zeroAddress } from "viem";
+import { parseUnits } from "viem";
 import { CurrencyTypes } from "@requestnetwork/types";
 
 export enum REQUEST_STATUS {
@@ -25,6 +25,7 @@ export interface CreateRequestParams {
   recipientAddress: string;
   reason?: string;
   dueDate?: string;
+  contentData?: Record<string, any>;
   onStatusChange?: (status: REQUEST_STATUS) => void;
 }
 
@@ -52,6 +53,7 @@ export async function createRequest({
   recipientAddress,
   reason,
   dueDate,
+  contentData,
   onStatusChange
 }: CreateRequestParams) {
   try {
@@ -78,7 +80,7 @@ export async function createRequest({
         ).toString(),
         payee: {
           type: Types.Identity.TYPE.ETHEREUM_ADDRESS,
-          value: recipientAddress, // The user address that will receive the payment
+          value: recipientAddress,
         },
         timestamp: Utils.getCurrentTimestampInSecond(),
       },
@@ -87,7 +89,7 @@ export async function createRequest({
         parameters: {
           paymentNetworkName: currency.network,
           paymentAddress: recipientAddress,
-          feeAddress: zeroAddress, // Address to receive fees
+          feeAddress: '0x546A5cB5c0AdD53efbC60000644AA70204B20576',
           feeAmount: calculateFeeAmount(expectedAmount, currency.decimals),
         },
       },
@@ -95,10 +97,11 @@ export async function createRequest({
         reason: reason || "",
         dueDate: dueDate || "",
         builderId: "payce-finance",
+        ...contentData,
       },
       signer: {
         type: Types.Identity.TYPE.ETHEREUM_ADDRESS,
-        value: payerAddress,
+        value: await walletClient.getAddresses().then((addresses: string[]) => addresses[0]),
       },
     };
 
