@@ -1,7 +1,23 @@
-import type { NextConfig } from "next";
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  webpack: (config: any) => {
+    // Ignore source map files
+    config.module.rules.push({
+      test: /\.d\.ts\.map$/,
+      use: 'null-loader',
+      type: 'javascript/auto',
+    });
 
-const nextConfig: NextConfig = {
-  /* config options here */
-};
+    // Handle .mjs files
+    config.module.rules.push({
+      test: /\.m?js$/,
+      resolve: {
+        fullySpecified: false,
+      },
+    });
 
-export default nextConfig;
+    return config;
+  },
+}
+
+export default nextConfig
