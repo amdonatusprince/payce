@@ -1,9 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   webpack: (config: any) => {
+    // Handle source maps properly
+    config.module.rules.push({
+      test: /\.js\.map$/,
+      enforce: 'pre',
+      use: ['source-map-loader'],
+    });
+
     // Handle all declaration files and source maps
     config.module.rules.push({
-      test: /\.(d\.ts|d\.ts\.map)$/,
+      test: /\.(d\.ts|d\.ts\.map|js\.map)$/,
       use: 'null-loader',
       type: 'javascript/auto',
     });
@@ -21,6 +28,11 @@ const nextConfig = {
       ...config.resolve.alias,
       '@metamask/sdk-communication-layer': false,
     };
+
+    // Disable source maps in production
+    if (config.mode === 'production') {
+      config.devtool = false;
+    }
 
     return config;
   },
