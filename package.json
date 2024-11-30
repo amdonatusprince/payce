@@ -9,7 +9,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@clerk/nextjs": "^6.5.0",
     "@headlessui/react": "^2.2.0",
     "@heroicons/react": "^2.2.0",
     "@rainbow-me/rainbowkit": "^2.2.0",
@@ -33,10 +32,10 @@
     "next": "15.0.3",
     "papaparse": "^5.4.1",
     "pino-pretty": "^13.0.0",
-    "react": "19.0.0-rc-66855b96-20241106",
-    "react-dom": "19.0.0-rc-66855b96-20241106",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "viem": "^2.21.50",
-    "wagmi": "^2.13.0"
+    "wagmi": "^2.13.2"
   },
   "devDependencies": {
     "@types/node": "^20",
