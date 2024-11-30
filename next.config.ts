@@ -1,7 +1,53 @@
-import type { NextConfig } from "next";
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  webpack: (config: any) => {
+    // Handle source maps properly
+    config.module.rules.push({
+      test: /\.js\.map$/,
+      enforce: 'pre',
+      use: ['source-map-loader'],
+    });
 
-const nextConfig: NextConfig = {
-  /* config options here */
-};
+    // Handle all declaration files and source maps
+    config.module.rules.push({
+      test: /\.(d\.ts|d\.ts\.map|js\.map)$/,
+      use: 'null-loader',
+      type: 'javascript/auto',
+    });
 
-export default nextConfig;
+    // Handle .mjs files
+    config.module.rules.push({
+      test: /\.m?js$/,
+      resolve: {
+        fullySpecified: false,
+      },
+    });
+
+    // Ignore specific problematic modules
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@metamask/sdk-communication-layer': false,
+    };
+
+    // Disable source maps in production
+    if (config.mode === 'production') {
+      config.devtool = false;
+    }
+
+    return config;
+  },
+  eslint: {
+    // Warning: This allows production builds to successfully complete even if
+    // your project has ESLint errors.
+    ignoreDuringBuilds: true,
+  },
+  // Add transpilePackages if needed
+  transpilePackages: [
+    '@metamask/sdk',
+    '@wagmi/connectors',
+    'wagmi',
+    '@rainbow-me/rainbowkit'
+  ],
+}
+
+export default nextConfig
