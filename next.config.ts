@@ -1,9 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   webpack: (config: any) => {
-    // Ignore source map files
+    // Handle all declaration files and source maps
     config.module.rules.push({
-      test: /\.d\.ts\.map$/,
+      test: /\.(d\.ts|d\.ts\.map)$/,
       use: 'null-loader',
       type: 'javascript/auto',
     });
@@ -16,8 +16,21 @@ const nextConfig = {
       },
     });
 
+    // Ignore specific problematic modules
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@metamask/sdk-communication-layer': false,
+    };
+
     return config;
   },
+  // Add transpilePackages if needed
+  transpilePackages: [
+    '@metamask/sdk',
+    '@wagmi/connectors',
+    'wagmi',
+    '@rainbow-me/rainbowkit'
+  ],
 }
 
 export default nextConfig
