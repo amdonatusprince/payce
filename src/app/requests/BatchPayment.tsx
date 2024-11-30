@@ -51,10 +51,14 @@ export async function createBatchPayment({
         expectedAmount: recipient.amount,
         currency,
         recipientAddress: recipient.address,
-        reason: recipient.reason || "Payroll Payment",
+        reason: recipient.reason,
         dueDate,
+        contentData: {
+          transactionType: 'batch_payment',
+          builderId: "payce-finance"
+        },
         onStatusChange: (status) => {
-          onStatusChange?.(`Employee ${completedRequests + 1}/${recipients.length}: ${status}`);
+          onStatusChange?.(`Recipient ${completedRequests + 1}/${recipients.length}: ${status}`);
         }
       };
 

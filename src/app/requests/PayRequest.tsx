@@ -36,9 +36,9 @@ export async function handlePayRequest(
     const _hasSufficientFunds = await hasSufficientFunds({
       request: request.getData(),
       address: payerAddress,
-    //   providerOptions: {
-    //     provider: provider,
-    //   }
+      providerOptions: {
+        provider: provider,
+      }
     });
 
     if (!_hasSufficientFunds) {

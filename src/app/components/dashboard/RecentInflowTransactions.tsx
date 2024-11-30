@@ -33,7 +33,7 @@ export const RecentInflowTransactions = () => {
           
           // Filter only created transactions where the current user is the payee
           const filteredRequests = allRequests.filter(request => 
-            request.state === 'created' && 
+            request.state === 'created' || 'accepted' && 
             request.payee?.value.toLowerCase() === address.toLowerCase()
           );
 

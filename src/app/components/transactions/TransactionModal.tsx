@@ -6,6 +6,7 @@ import { formatUnits } from 'viem';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
 import { handlePayRequest, RequestStatus } from '@/app/requests/PayRequest';
 import { useState } from 'react';
+import { EscrowOperations } from '@/app/requests/EscrowPayment';
 
 
 interface TransactionModalProps {
@@ -22,6 +23,7 @@ export function TransactionModal({ isOpen, onClose, transaction }: TransactionMo
   const [paymentStatus, setPaymentStatus] = useState<RequestStatus>('checking');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const formatCurrency = (currency: string) => currency.split('-')[0];
   const formatAmount = (amount: string | number, decimals: number = 18) => 
@@ -38,6 +40,7 @@ export function TransactionModal({ isOpen, onClose, transaction }: TransactionMo
     
     setError(null);
     setPaymentStatus('checking');
+    setIsProcessing(true);
     
     try {
       const result = await handlePayRequest(
@@ -61,6 +64,8 @@ export function TransactionModal({ isOpen, onClose, transaction }: TransactionMo
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Payment failed');
       setPaymentStatus('checking');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -102,23 +107,20 @@ export function TransactionModal({ isOpen, onClose, transaction }: TransactionMo
                   Transaction Details
                 </Dialog.Title>
                 <div className="flex items-center gap-4">
-                  {isPayer && transaction.state !== 'accepted' && (
+                  {isPayer && transaction.contentData?.transactionType === 'escrow_payment' && (
                     <button 
-                      onClick={handlePayNow}
-                      disabled={paymentStatus !== 'checking'}
-                      className={`btn-primary inline-flex items-center gap-2 ${
-                        paymentStatus !== 'checking' ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
+                      onClick={() => EscrowOperations.releasePayment(transaction, walletClient)}
+                      disabled={isProcessing}
+                      className="btn-primary inline-flex items-center gap-2"
                     >
-                      {paymentStatus !== 'checking' && paymentStatus !== 'error' && (
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                      {isProcessing ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                          Processing...
+                        </>
+                      ) : (
+                        'Release Payment'
                       )}
-                      {paymentStatus === 'checking' || paymentStatus === 'error' ? 'Pay Now' : 
-                       paymentStatus === 'approving' ? 'Approving...' :
-                       paymentStatus === 'approved' ? 'Processing...' :
-                       paymentStatus === 'paying' ? 'Paying...' :
-                       paymentStatus === 'confirming' ? 'Confirming...' :
-                       'Pay Now'}
                     </button>
                   )}
                   <button 
@@ -138,45 +140,81 @@ export function TransactionModal({ isOpen, onClose, transaction }: TransactionMo
               )}
 
               {/* Business and Client Details */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                {/* Business Details */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-gray-500 mb-3">Business Details</h3>
-                  <div className="space-y-2">
-                    <p className="text-sm text-gray-900">
-                      <span className="font-medium">Name: </span>
-                      {transaction.contentData?.businessDetails?.name ?? 'N/A'}
-                    </p>
-                    <p className="text-sm text-gray-900">
-                      <span className="font-medium">Email: </span>
-                      {transaction.contentData?.businessDetails?.email ?? 'N/A'}
-                    </p>
-                    <p className="text-sm text-gray-900">
-                      <span className="font-medium">Address: </span>
-                      {transaction.contentData?.businessDetails?.address ?? 'N/A'}
-                    </p>
+              {transaction.contentData?.transactionType === 'escrow_payment' ? (
+                // Project Details for Escrow Payment
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h3 className="text-sm font-medium text-gray-500 mb-3">Project Details</h3>
+                    <div className="space-y-2">
+                      <p className="text-sm text-gray-900">
+                        <span className="font-medium">Title: </span>
+                        {transaction.contentData?.projectDetails?.title}
+                      </p>
+                      <p className="text-sm text-gray-900">
+                        <span className="font-medium">Description: </span>
+                        {transaction.contentData?.projectDetails?.description}
+                      </p>
+                      <p className="text-sm text-gray-900">
+                        <span className="font-medium">Duration: </span>
+                        {transaction.contentData?.projectDetails?.duration}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h3 className="text-sm font-medium text-gray-500 mb-3">Milestones</h3>
+                    <div className="space-y-2">
+                      {transaction.contentData?.projectDetails?.milestones.map((milestone: any, index: number) => (
+                        <div key={index} className="text-sm text-gray-900">
+                          <p className="font-medium">Milestone {index + 1}:</p>
+                          <p>{milestone.description}</p>
+                          <p className="text-gray-500">Due: {format(new Date(milestone.dueDate), 'PPP')}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
+              ) : (
+                // Existing Business/Client Details
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                  {/* Business Details */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h3 className="text-sm font-medium text-gray-500 mb-3">Business Details</h3>
+                    <div className="space-y-2">
+                      <p className="text-sm text-gray-900">
+                        <span className="font-medium">Name: </span>
+                        {transaction.contentData?.businessDetails?.name ?? 'N/A'}
+                      </p>
+                      <p className="text-sm text-gray-900">
+                        <span className="font-medium">Email: </span>
+                        {transaction.contentData?.businessDetails?.email ?? 'N/A'}
+                      </p>
+                      <p className="text-sm text-gray-900">
+                        <span className="font-medium">Address: </span>
+                        {transaction.contentData?.businessDetails?.address ?? 'N/A'}
+                      </p>
+                    </div>
+                  </div>
 
-                {/* Client Details */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-gray-500 mb-3">Client Details</h3>
-                  <div className="space-y-2">
-                    <p className="text-sm text-gray-900">
-                      <span className="font-medium">Name: </span>
-                      {transaction.contentData?.clientDetails?.name ?? 'N/A'}
-                    </p>
-                    <p className="text-sm text-gray-900">
-                      <span className="font-medium">Email: </span>
-                      {transaction.contentData?.clientDetails?.email ?? 'N/A'}
-                    </p>
-                    <p className="text-sm text-gray-900">
-                      <span className="font-medium">Address: </span>
-                      {transaction.contentData?.clientDetails?.address ?? 'N/A'}
-                    </p>
+                  {/* Client Details */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h3 className="text-sm font-medium text-gray-500 mb-3">Client Details</h3>
+                    <div className="space-y-2">
+                      <p className="text-sm text-gray-900">
+                        <span className="font-medium">Name: </span>
+                        {transaction.contentData?.clientDetails?.name ?? 'N/A'}
+                      </p>
+                      <p className="text-sm text-gray-900">
+                        <span className="font-medium">Email: </span>
+                        {transaction.contentData?.clientDetails?.email ?? 'N/A'}
+                      </p>
+                      <p className="text-sm text-gray-900">
+                        <span className="font-medium">Address: </span>
+                        {transaction.contentData?.clientDetails?.address ?? 'N/A'}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
               
               {/* Transaction Details */}
               <div className="border-t border-gray-100">
@@ -185,6 +223,7 @@ export function TransactionModal({ isOpen, onClose, transaction }: TransactionMo
                     {
                       label: "Date & Time",
                       value: format(new Date(transaction.timestamp * 1000), 'PPP p'),
+                      fullWidth: false,
                     },
                     {
                       label: "Status",
@@ -193,6 +232,7 @@ export function TransactionModal({ isOpen, onClose, transaction }: TransactionMo
                         getStatus(transaction) === 'overdue' ? 'bg-red-100 text-red-800' :
                         'bg-yellow-100 text-yellow-800'
                       }`}>{getStatus(transaction)}</span>,
+                      fullWidth: false,
                     },
                     {
                       label: "Amount",
@@ -206,20 +246,24 @@ export function TransactionModal({ isOpen, onClose, transaction }: TransactionMo
                           {formatAmount(transaction.expectedAmount)} {formatCurrency(transaction.currency)}
                         </span>
                       ),
+                      fullWidth: false,
                     },
                     {
                       label: "Balance",
                       value: `${formatAmount(transaction.balance?.balance ?? '0')} ${formatCurrency(transaction.currency)}`,
+                      fullWidth: false,
                     },
                     {
                       label: "Currency Network",
                       value: transaction.currencyInfo?.network || 'N/A',
+                      fullWidth: false,
                     },
                     {
                       label: "Due Date",
                       value: transaction.contentData?.dueDate 
                         ? format(new Date(transaction.contentData.dueDate), 'PPP')
                         : 'No due date',
+                      fullWidth: false,
                     },
                     {
                       label: "Payer Address",
@@ -228,6 +272,7 @@ export function TransactionModal({ isOpen, onClose, transaction }: TransactionMo
                           {transaction.payer?.value || 'N/A'}
                         </span>
                       ),
+                      fullWidth: false,
                     },
                     {
                       label: "Payee Address",
@@ -236,6 +281,7 @@ export function TransactionModal({ isOpen, onClose, transaction }: TransactionMo
                           {transaction.payee?.value || 'N/A'}
                         </span>
                       ),
+                      fullWidth: false,
                     },
                     {
                         label: "Reason for Payment",
@@ -244,6 +290,7 @@ export function TransactionModal({ isOpen, onClose, transaction }: TransactionMo
                               {transaction.contentData?.reason || 'No reason provided'}
                             </span>
                           ),
+                        fullWidth: false,
                       },
                     {
                       label: "Request ID",
@@ -258,9 +305,9 @@ export function TransactionModal({ isOpen, onClose, transaction }: TransactionMo
                           <ArrowTopRightOnSquareIcon className="h-4 w-4 flex-shrink-0" />
                         </a>
                       ),
-                      fullWidth: true
+                      fullWidth: false,
                     }
-                  ].map((item, index) => (
+                  ].map((item: { label: string; value: string | JSX.Element; fullWidth?: boolean }, index) => (
                     <div 
                       key={index} 
                       className={`${

@@ -27,7 +27,7 @@ export function RecentPaymentTransactions() {
           // Filter only payment transactions
           const filteredRequests = allRequests.filter(request => 
             request.contentData?.transactionType === 'single_forwarder' || 
-            request.contentData?.transactionType === 'batch_forwarder'
+            request.contentData?.transactionType === 'batch_payment'
           );
 
           const recent = filteredRequests
