@@ -1,4 +1,9 @@
+'use client';
+import { useRouter } from 'next/navigation';
+
 export const AccountOverview = () => {
+  const router = useRouter();
+
   return (
     <div className="bg-white rounded-xl shadow-sm p-6">
       <h2 className="text-lg font-semibold mb-4">Account Overview</h2>
@@ -35,17 +40,29 @@ export const AccountOverview = () => {
         <div className="border-t pt-4">
           <h3 className="text-sm text-gray-600 mb-3">Quick Actions</h3>
           <div className="grid grid-cols-2 gap-2">
-            <button className="p-2 text-sm text-center border rounded-lg hover:bg-gray-50">
-              Add Funds
+            <button 
+              onClick={() => router.push('/talents')}
+              className="p-2 text-sm text-center border rounded-lg hover:bg-gray-50"
+            >
+              Talent Hub
             </button>
-            <button className="p-2 text-sm text-center border rounded-lg hover:bg-gray-50">
-              Withdraw
+            <button 
+              onClick={() => router.push('/marketplace')}
+              className="p-2 text-sm text-center border rounded-lg hover:bg-gray-50"
+            >
+              Marketplace
             </button>
-            <button className="p-2 text-sm text-center border rounded-lg hover:bg-gray-50">
-              Send
+            <button 
+              onClick={() => router.push('/dashboard/settings')}
+              className="p-2 text-sm text-center border rounded-lg hover:bg-gray-50"
+            >
+              Settings
             </button>
-            <button className="p-2 text-sm text-center border rounded-lg hover:bg-gray-50">
-              Request
+            <button 
+              onClick={() => router.push('/dashboard/statement')}
+              className="p-2 text-sm text-center border rounded-lg hover:bg-gray-50"
+            >
+              My Statement
             </button>
           </div>
         </div>

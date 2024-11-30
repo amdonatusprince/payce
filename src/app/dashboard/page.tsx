@@ -1,5 +1,5 @@
 import { DashboardStats } from '../components/dashboard/DashboardStats';
-import { RecentTransactions } from '../components/dashboard/RecentTransactions';
+import { RecentInflowTransactions } from '../components/dashboard/RecentInflowTransactions';
 import { AccountOverview } from '../components/dashboard/AccountOverview';
 import { QuickActions } from '../components/dashboard/QuickActions';
 
@@ -15,7 +15,7 @@ export default function DashboardPage() {
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <RecentTransactions />
+          <RecentInflowTransactions />
         </div>
         <div>
           <AccountOverview />

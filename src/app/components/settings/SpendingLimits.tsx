@@ -64,7 +64,7 @@ export const SpendingLimits = () => {
               className="w-32 p-3 border rounded-lg"
               disabled={!dailyLimit.enabled}
             >
-              {supportedCurrencies.map(currency => (
+              {Object.keys(supportedCurrencies).map((currency: string) => (
                 <option key={currency} value={currency}>{currency}</option>
               ))}
             </select>
@@ -109,7 +109,7 @@ export const SpendingLimits = () => {
               className="w-32 p-3 border rounded-lg"
               disabled={!monthlyLimit.enabled}
             >
-              {supportedCurrencies.map(currency => (
+              {Object.keys(supportedCurrencies).map((currency: string) => (
                 <option key={currency} value={currency}>{currency}</option>
               ))}
             </select>

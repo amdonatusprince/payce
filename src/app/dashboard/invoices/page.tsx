@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { InvoiceList } from '../../components/invoices/InvoiceList';
+import { RecentInvoiceTransactions } from '../../components/invoices/RecentInvoiceTransaction';
 import { InvoiceStats } from '../../components/invoices/InvoiceStats';
 import { InvoiceForm } from '../../components/invoices/InvoiceForm';
 
@@ -63,7 +63,7 @@ export default function InvoicesPage() {
         </div>
       </div>
 
-      <InvoiceList />
+      <RecentInvoiceTransactions />
     </div>
   );
 } 

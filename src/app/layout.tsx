@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
+import { Providers } from "./Providers";
 
-const spaceGrotesk = Space_Grotesk({ 
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-space-grotesk",
 });
 
 export const metadata: Metadata = {
-  title: "Payce - Decentralized Payment Infrastructure",
-  description: "The first entirely on-chain autonomous and decentralised payment infrastructure for businesses and merchants.",
+  title: "Payce - onchain payment Infrastructure for businesses and merchants.",
+  description:
+    "The first entirely on-chain autonomous and decentralised payment infrastructure for businesses and merchants.",
   icons: {
-    icon: '/payceLogo.png',
+    icon: "/payceLogo.png",
   },
 };
 
@@ -23,7 +25,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={spaceGrotesk.variable} suppressHydrationWarning>
-        {children}
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );

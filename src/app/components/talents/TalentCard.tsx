@@ -39,7 +39,7 @@ export const TalentCard: React.FC<TalentCardProps> = ({ talent }) => {
 
   return (
     <>
-      <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
+      <div className="bg-white rounded-xl shadow-[0_10px_20px_-15px_rgba(0,0,0,0.3)] p-6 hover:shadow-[0_10px_25px_-15px_rgba(0,0,0,0.4)] transition-shadow">
         <div className="flex gap-4">
           <img
             src={talent.avatar}
