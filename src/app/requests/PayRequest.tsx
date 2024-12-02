@@ -29,13 +29,14 @@ export async function handlePayRequest(
     
     const requestClient = createRequestClient()
     const request = await requestClient.fromRequestId(requestId);
+    const requestData = request.getData();
     const provider = publicClient ? publicClientToProvider(publicClient) : undefined;
     const signer = walletClient ? walletClientToSigner(walletClient) : undefined;
-
+    
     // Check for sufficient funds
     const _hasSufficientFunds = await hasSufficientFunds({
-      request: request.getData(),
-      address: payerAddress,
+      request: requestData,
+      address: payerAddress as string,
       providerOptions: {
         provider: provider,
       }
@@ -52,7 +53,7 @@ export async function handlePayRequest(
     // Check ERC20 approval
     updateStatus('needs-approval');
     const _hasErc20Approval = await hasErc20Approval(
-        request.getData(),
+        requestData,
         payerAddress,
         provider
     );
@@ -61,7 +62,7 @@ export async function handlePayRequest(
     if (!_hasErc20Approval) {
       try {
         updateStatus('approving');
-        const approvalTx = await approveErc20(request.getData(), signer);
+        const approvalTx = await approveErc20(requestData, signer);
         await approvalTx.wait(2);
         updateStatus('approved');
       } catch (error) {
@@ -75,7 +76,7 @@ export async function handlePayRequest(
 
     // Process payment
     updateStatus('paying');
-    const paymentTx = await processPayRequest(request.getData(), signer);
+    const paymentTx = await processPayRequest(requestData, signer);
     await paymentTx.wait(2);
 
     // Wait for confirmation
