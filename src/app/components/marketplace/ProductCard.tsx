@@ -113,7 +113,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               <PaymentWidget
                 sellerInfo={{
                   name: product.seller.name,
-
                 }}
                 productInfo={{
                   name: product.title,
@@ -128,6 +127,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 onError={handlePaymentError}
                 enablePdfReceipt={true}
                 enableRequestScanLink={true}
+                feeAmountInUSD={product.price * 0.005}
+                feeAddress="0x546A5cB5c0AdD53efbC60000644AA70204B20576"
               />
             )}
           </div>

@@ -101,27 +101,48 @@ export function TransactionModal({ isOpen, onClose, transaction }: TransactionMo
         <div className="fixed inset-0 flex items-center justify-center p-4">
           <Dialog.Panel className="mx-auto w-full max-w-5xl rounded-2xl bg-white shadow-2xl ring-1 ring-gray-200">
             <div className="p-6">
-              {/* Header with Pay Now button */}
+              {/* Header with Pay/Release button */}
               <div className="flex justify-between items-center mb-6">
                 <Dialog.Title className="text-lg sm:text-xl font-semibold text-gray-900">
                   Transaction Details
                 </Dialog.Title>
                 <div className="flex items-center gap-4">
-                  {isPayer && transaction.contentData?.transactionType === 'escrow_payment' && (
-                    <button 
-                      onClick={() => EscrowOperations.releasePayment(transaction, walletClient)}
-                      disabled={isProcessing}
-                      className="btn-primary inline-flex items-center gap-2"
-                    >
-                      {isProcessing ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                          Processing...
-                        </>
+                  {isPayer && (
+                    <>
+                      {transaction.contentData?.transactionType === 'escrow_payment' ? (
+                        // Show Release Payment button for escrow payments
+                        <button 
+                          onClick={() => EscrowOperations.releasePayment(transaction, walletClient)}
+                          disabled={isProcessing}
+                          className="btn-primary inline-flex items-center gap-2"
+                        >
+                          {isProcessing ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                              Processing...
+                            </>
+                          ) : (
+                            'Release Payment'
+                          )}
+                        </button>
                       ) : (
-                        'Release Payment'
+                        // Show Pay Now button for regular payments
+                        <button
+                          onClick={handlePayNow}
+                          disabled={isProcessing}
+                          className="btn-primary inline-flex items-center gap-2"
+                        >
+                          {isProcessing ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                              Processing...
+                            </>
+                          ) : (
+                            'Pay Now'
+                          )}
+                        </button>
                       )}
-                    </button>
+                    </>
                   )}
                   <button 
                     onClick={onClose} 
