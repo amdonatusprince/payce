@@ -21,7 +21,9 @@ export const TransactionHistory = () => {
   const formatAmount = (amount: string | number, decimals: number = 18) => 
     parseFloat(formatUnits(BigInt(amount.toString()), decimals));
   const getStatus = (tx: Types.IRequestData) => {
-    if (tx.state === 'accepted') return 'paid';
+    if (tx.balance?.balance && BigInt(tx.balance.balance) > 0) {
+      return 'paid';
+    }
     if (tx.contentData?.dueDate && new Date(tx.contentData.dueDate) < new Date()) return 'overdue';
     return 'pending';
   };
@@ -53,7 +55,8 @@ export const TransactionHistory = () => {
       currency: formatCurrency(tx.currency) as Currency,
       description: tx.contentData?.reason || 'No reason provided',
       status: getStatus(tx) as TransactionStatus,
-      from: tx.payer?.value || 'Unknown'
+      from: tx.payer?.value || 'Unknown',
+      balance: tx.balance?.balance ? formatAmount(tx.balance.balance) : 0
     }));
 
     exportTransactions(formattedTransactions, format);

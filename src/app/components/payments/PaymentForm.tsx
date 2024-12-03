@@ -94,8 +94,8 @@ export const PaymentForm = () => {
           payerAddress: formData.payerAddress,
           expectedAmount: formData.amount,
           currency: {
-            type: Types.RequestLogic.CURRENCY.ERC20 as const,
-            value: '0x370DE27fdb7D1Ff1e1BaA7D11c5820a324Cf623C',
+            type: Types.RequestLogic.CURRENCY.ETH as const,
+            value: 'ETH',
             network: formData.network.toLowerCase() as CurrencyTypes.ChainName,
             decimals: supportedCurrencies[formData.currency as keyof typeof supportedCurrencies].decimals,
           },
@@ -131,8 +131,8 @@ export const PaymentForm = () => {
           walletClient,
           payerAddress: address,
           currency: {
-            type: Types.RequestLogic.CURRENCY.ERC20 as const,
-            value: '0x370DE27fdb7D1Ff1e1BaA7D11c5820a324Cf623C',
+            type: Types.RequestLogic.CURRENCY.ETH as const,
+            value: 'ETH',
             network: formData.network.toLowerCase() as CurrencyTypes.ChainName,
             decimals: supportedCurrencies[formData.currency as keyof typeof supportedCurrencies].decimals,
           },

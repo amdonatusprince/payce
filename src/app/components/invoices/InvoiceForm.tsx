@@ -80,8 +80,8 @@ export const InvoiceForm = () => {
         payerAddress: formData.clientWallet,
         expectedAmount: calculateTotal(),
         currency: {
-          type: Types.RequestLogic.CURRENCY.ERC20 as const,
-          value: '0x370DE27fdb7D1Ff1e1BaA7D11c5820a324Cf623C',
+          type: Types.RequestLogic.CURRENCY.ETH as const,
+          value: 'ETH',
           network: 'sepolia' as CurrencyTypes.ChainName,
           decimals: supportedCurrencies[formData.currency as keyof typeof supportedCurrencies].decimals,
         },
@@ -346,7 +346,7 @@ export const InvoiceForm = () => {
             </div>
             <div className="mb-4">
               <p className="text-sm text-gray-600">
-                The invoice has been successfully created and sent to {formData.clientName}'s wallet address.
+                The invoice has been successfully created and sent to payer's wallet address.
               </p>
             </div>
             <div className="flex justify-end">

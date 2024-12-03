@@ -62,7 +62,9 @@ export function RecentPaymentTransactions() {
   };
 
   const getStatus = (tx: Types.IRequestData) => {
-    if (tx.state === 'accepted') return 'paid';
+    if (tx.balance?.balance && BigInt(tx.balance.balance) >= 0 ) {
+      return 'paid';
+    }
     if (tx.contentData?.dueDate && new Date(tx.contentData.dueDate) < new Date()) return 'overdue';
     return 'pending';
   };

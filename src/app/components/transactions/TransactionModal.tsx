@@ -30,7 +30,9 @@ export function TransactionModal({ isOpen, onClose, transaction }: TransactionMo
     parseFloat(formatUnits(BigInt(amount.toString()), decimals));
 
   const getStatus = (tx: Types.IRequestData) => {
-    if (tx.state === 'accepted') return 'paid';
+    if (tx.balance?.balance && BigInt(tx.balance.balance) >= 0) {
+      return 'paid';
+    }
     if (tx.contentData?.dueDate && new Date(tx.contentData.dueDate) < new Date()) return 'overdue';
     return 'pending';
   };
@@ -107,10 +109,9 @@ export function TransactionModal({ isOpen, onClose, transaction }: TransactionMo
                   Transaction Details
                 </Dialog.Title>
                 <div className="flex items-center gap-4">
-                  {isPayer && (
+                  {isPayer && getStatus(transaction) !== 'paid' && (
                     <>
                       {transaction.contentData?.transactionType === 'escrow_payment' ? (
-                        // Show Release Payment button for escrow payments
                         <button 
                           onClick={() => EscrowOperations.releasePayment(transaction, walletClient)}
                           disabled={isProcessing}
@@ -126,7 +127,6 @@ export function TransactionModal({ isOpen, onClose, transaction }: TransactionMo
                           )}
                         </button>
                       ) : (
-                        // Show Pay Now button for regular payments
                         <button
                           onClick={handlePayNow}
                           disabled={isProcessing}

@@ -121,7 +121,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 }}
                 amountInUSD={product.price}
                 sellerAddress={product.seller.address}
-                supportedCurrencies={['ETH-sepolia-sepolia', 'ETH-mainnet', 'USDC-mainnet']}
+                supportedCurrencies={['ETH-sepolia-sepolia']}
                 onPaymentSuccess={handlePaymentSuccess}
                 persistRequest={true}
                 onError={handlePaymentError}

@@ -4,6 +4,11 @@ import { createRequestClient } from "./utils/requestUtil";
 import { hasSufficientFunds } from "@requestnetwork/payment-processor";
 import { approveErc20, hasErc20Approval } from "@requestnetwork/payment-processor"
 import { payRequest as processPayRequest } from "@requestnetwork/payment-processor";
+import { 
+  payEthFeeProxyRequest, 
+  prepareEthFeeProxyPaymentTransaction,
+  validateEthFeeProxyRequest 
+} from "@requestnetwork/payment-processor";
 
 export type RequestStatus = 'checking' | 'insufficient-funds' | 'needs-approval' | 'approving' | 'approved' | 'paying' | 'confirming' | 'completed' | 'error';
 
@@ -13,7 +18,7 @@ export interface PaymentResult {
   error?: string;
 }
 
-export async function handlePayRequest(
+export async function handleERC20PayRequest(
   requestId: string,
   payerAddress: string,
   publicClient: any,
@@ -100,6 +105,82 @@ export async function handlePayRequest(
   } catch (error) {
     updateStatus('error');
     console.log(error);
+    return {
+      status: 'error',
+      error: error instanceof Error ? error.message : "An unexpected error occurred"
+    };
+  }
+}
+
+export async function handlePayRequest(
+  requestId: string,
+  payerAddress: string,
+  publicClient: any,
+  walletClient: any,
+  onStatusChange?: (status: RequestStatus) => void
+): Promise<PaymentResult> {
+  const updateStatus = (status: RequestStatus) => {
+    if (onStatusChange) onStatusChange(status);
+  };
+
+  try {
+    updateStatus('checking');
+    
+    const requestClient = createRequestClient();
+    const request = await requestClient.fromRequestId(requestId);
+    const requestData = request.getData();
+    const provider = publicClient ? publicClientToProvider(publicClient) : undefined;
+    const signer = walletClient ? walletClientToSigner(walletClient) : undefined;
+
+    // Validate the request and check for sufficient funds
+    validateEthFeeProxyRequest(requestData);
+    const _hasSufficientFunds = await hasSufficientFunds({
+      request: requestData,
+      address: payerAddress as string,
+      providerOptions: { provider }
+    });
+
+    if (!_hasSufficientFunds) {
+      updateStatus('insufficient-funds');
+      return {
+        status: 'insufficient-funds',
+        error: "Insufficient funds to complete this payment"
+      };
+    }
+
+    // Prepare the transaction
+    updateStatus('paying');
+    const tx = await payEthFeeProxyRequest(
+      requestData,
+      signer,
+      // undefined, // amount (undefined = pay full amount)
+      // undefined, // feeAmount (undefined = use default fee)
+      // { 
+      //   gasLimit: 500000 // Optional: Adjust gas limit if needed
+      // }
+    );
+
+    // Wait for confirmation
+    updateStatus('confirming');
+    await tx.wait(2);
+
+    // Verify the payment was successful
+    let updatedRequestData = await request.refresh();
+    while (updatedRequestData.balance?.balance != null && 
+           updatedRequestData.balance.balance < updatedRequestData.expectedAmount) {
+      updatedRequestData = await request.refresh();
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+
+    updateStatus('completed');
+    return {
+      status: 'completed',
+      data: updatedRequestData
+    };
+
+  } catch (error) {
+    updateStatus('error');
+    console.error(error);
     return {
       status: 'error',
       error: error instanceof Error ? error.message : "An unexpected error occurred"

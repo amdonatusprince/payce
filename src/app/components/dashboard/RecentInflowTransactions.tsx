@@ -30,12 +30,14 @@ export const RecentInflowTransactions = () => {
       try {
         if (address) {
           const allRequests = await retrieveRequest(address);
-          
-          // Filter only created transactions where the current user is the payee
-          const filteredRequests = allRequests.filter(request => 
-            request.state === 'created' || 
-            (request.state === 'accepted' && request.payee?.value.toLowerCase() === address.toLowerCase())
-          );
+          // Filter only completed inflow transactions (where user is payee and payment is complete)
+          const filteredRequests = allRequests.filter(request => {
+            const isPayee = request.payee?.value.toLowerCase() === address.toLowerCase();
+            const isPaid = request.balance?.balance && 
+              BigInt(request.balance.balance) >= 0;
+            
+            return isPayee && isPaid; // Only show completed payments
+          });
 
           const recent = filteredRequests
             .sort((a, b) => b.timestamp - a.timestamp)
@@ -49,6 +51,15 @@ export const RecentInflowTransactions = () => {
 
     fetchTransactions();
   }, [address]);
+
+  // Update getStatus function to remove accepted state
+  const getStatus = (tx: Types.IRequestData) => {
+    if (tx.balance?.balance && BigInt(tx.balance.balance) >= BigInt(tx.expectedAmount)) {
+      return 'paid';
+    }
+    if (tx.contentData?.dueDate && new Date(tx.contentData.dueDate) < new Date()) return 'overdue';
+    return 'pending';
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-sm">

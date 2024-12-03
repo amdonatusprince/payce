@@ -13,7 +13,7 @@ interface PaymentParams {
   payerAddress: string;
   expectedAmount: string;
   currency: {
-    type: Types.RequestLogic.CURRENCY.ERC20;
+    type: Types.RequestLogic.CURRENCY.ETH;
     value: string;
     network: CurrencyTypes.ChainName;
     decimals: number;
