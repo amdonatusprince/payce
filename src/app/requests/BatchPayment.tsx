@@ -4,6 +4,7 @@ import { CurrencyTypes } from "@requestnetwork/types";
 import { 
   approveErc20BatchConversionIfNeeded,
   payBatchConversionProxyRequest,
+  payBatchProxyRequest,
 } from "@requestnetwork/payment-processor";
 import { EnrichedRequest } from "@requestnetwork/payment-processor/dist/types";
 
@@ -42,6 +43,7 @@ export async function createBatchPayment({
     
     // 1. Create individual requests for each employee
     const enrichedRequests: EnrichedRequest[] = [];
+    const requests: Types.IRequestData[] = [];
     let completedRequests = 0;
 
     for (const recipient of recipients) {
@@ -63,53 +65,81 @@ export async function createBatchPayment({
       };
 
       const { request } = await createRequest(requestParams);
+      const requestData = request.getData();
+      requests.push(requestData);
       
-      enrichedRequests.push({
-        paymentNetworkId: Types.Extension.PAYMENT_NETWORK_ID.ERC20_FEE_PROXY_CONTRACT,
-        request: request.getData(),
-        paymentSettings: { maxToSpend: '0' }
-      });
+      if (currency.type === Types.RequestLogic.CURRENCY.ETH) {
+        enrichedRequests.push({
+          paymentNetworkId: Types.Extension.PAYMENT_NETWORK_ID.ETH_FEE_PROXY_CONTRACT,
+          request: requestData,
+          paymentSettings: { maxToSpend: '0' }
+        });
+      }
 
       completedRequests++;
       onEmployeeProgress?.(completedRequests, recipients.length);
     }
 
-    // 2. Approve tokens for batch payment if needed
-    onStatusChange?.("Approving tokens for batch payment...");
-    await approveErc20BatchConversionIfNeeded(
-      enrichedRequests[0].request,
-      payerAddress,
-      walletClient,
-      undefined, // Use default max allowance
-      {
-        currency,
-        maxToSpend: '0',
-      }
-    );
-
-    // 3. Execute batch payment
-    onStatusChange?.("Executing batch payment...");
-    const batchTx = await payBatchConversionProxyRequest(
-      enrichedRequests,
-      walletClient,
-      {
-        skipFeeUSDLimit: true,
-        conversion: {
-          currencyManager: undefined,
-          currency,
+    if (currency.type === Types.RequestLogic.CURRENCY.ETH) {
+      // Handle ETH batch payment
+      onStatusChange?.("Executing ETH batch payment...");
+      const batchTx = await payBatchProxyRequest(
+        requests,
+        '0.2.0', // version
+        walletClient,
+        10, // batchFee (0.1%)
+        {
+          gasLimit: 500000
         }
-      }
-    );
+      );
 
-    onStatusChange?.("Waiting for batch payment confirmation...");
-    const receipt = await batchTx.wait();
+      onStatusChange?.("Waiting for ETH batch payment confirmation...");
+      const receipt = await batchTx.wait(2);
 
-    onStatusChange?.("Batch payment completed!");
-    return {
-      transactionHash: receipt.transactionHash,
-      requests: enrichedRequests,
-      receipt
-    };
+      onStatusChange?.("ETH batch payment completed!");
+      return {
+        transactionHash: receipt.transactionHash,
+        requests,
+        receipt
+      };
+
+    } else {
+      // Handle ERC20 batch payment
+      onStatusChange?.("Approving tokens for batch payment...");
+      await approveErc20BatchConversionIfNeeded(
+        enrichedRequests[0].request,
+        payerAddress,
+        walletClient,
+        undefined,
+        {
+          currency,
+          maxToSpend: '0',
+        }
+      );
+
+      onStatusChange?.("Executing ERC20 batch payment...");
+      const batchTx = await payBatchConversionProxyRequest(
+        enrichedRequests,
+        walletClient,
+        {
+          skipFeeUSDLimit: true,
+          conversion: {
+            currencyManager: undefined,
+            currency,
+          }
+        }
+      );
+
+      onStatusChange?.("Waiting for batch payment confirmation...");
+      const receipt = await batchTx.wait(2);
+
+      onStatusChange?.("Batch payment completed!");
+      return {
+        transactionHash: receipt.transactionHash,
+        requests: enrichedRequests,
+        receipt
+      };
+    }
 
   } catch (error) {
     onStatusChange?.("Error in batch payment");

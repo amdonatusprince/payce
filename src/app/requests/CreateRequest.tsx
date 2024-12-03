@@ -85,7 +85,7 @@ export async function createRequest({
         timestamp: Utils.getCurrentTimestampInSecond(),
       },
       paymentNetwork: {
-        id: Types.Extension.PAYMENT_NETWORK_ID.ERC20_FEE_PROXY_CONTRACT,
+        id: Types.Extension.PAYMENT_NETWORK_ID.ETH_FEE_PROXY_CONTRACT,
         parameters: {
           paymentNetworkName: currency.network,
           paymentAddress: recipientAddress,
