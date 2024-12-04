@@ -20,15 +20,15 @@ export const EscrowOperations = {
       params.onEscrowStatus?.('Approving tokens...');
       const signer = new providers.Web3Provider(params.walletClient.transport).getSigner();
       
-      // 2. Approve ERC20 tokens for escrow
-      const approveTx = await Escrow.approveErc20ForEscrow(
-        requestData,
-        requestData.currencyInfo.value,
-        signer
-      );
-      await approveTx.wait(1);
+      // // 2. Approve ERC20 tokens for escrow
+      // const approveTx = await Escrow.approveErc20ForEscrow(
+      //   requestData,
+      //   requestData.currencyInfo.value,
+      //   signer
+      // );
+      // await approveTx.wait(1);
 
-      params.onEscrowStatus?.('Paying to escrow...');
+      // params.onEscrowStatus?.('Paying to escrow...');
       
       // 3. Pay into escrow
       const paymentTx = await Escrow.payEscrow(requestData, signer);
@@ -38,7 +38,7 @@ export const EscrowOperations = {
       return {
         request,
         requestData,
-        approveTx,
+        // approveTx,
         paymentTx
       };
     } catch (error) {
