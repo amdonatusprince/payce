@@ -34,7 +34,6 @@ export const TransactionHistory = () => {
       try {
         if (address) {
           const allRequests = await retrieveRequest(address);
-          console.log(allRequests);
           setTransactions(allRequests.sort((a, b) => b.timestamp - a.timestamp));
         }
       } finally {

@@ -1,40 +1,121 @@
-import { ArrowTrendingDownIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline';
+"use client";
+import { ArrowTrendingDownIcon, ArrowTrendingUpIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { useAccount } from 'wagmi';
+import { useState, useEffect } from 'react';
+import { retrieveRequest } from '@/app/requests/RetrieveRequest';
+import { formatUnits } from 'viem';
 
-const stats = [
-  {
-    id: 1,
-    title: 'Total Balance',
-    value: '$15,000',
-    change: '+12.5%',
-    trend: 'up',
-    currency: 'USDC'
-  },
-  {
-    id: 2,
-    title: 'Monthly Volume',
-    value: '$45,000',
-    change: '+8.2%',
-    trend: 'up',
-    currency: 'USDC'
-  },
-  {
-    id: 3,
-    title: 'Active Invoices',
-    value: '12',
-    change: '-2.3%',
-    trend: 'down',
-  },
-  {
-    id: 4,
-    title: 'Available Credit',
-    value: '$25,000',
-    change: '+5.1%',
-    trend: 'up',
-    currency: 'USDC'
-  },
-];
 
 export const DashboardStats = () => {
+  const { address } = useAccount();
+  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState([
+    {
+      id: 1,
+      title: 'Total Inflow',
+      value: '0',
+      change: '+0%',
+      trend: 'up',
+      currency: 'ETH'
+    },
+    {
+      id: 2,
+      title: 'Total Outflow',
+      value: '0',
+      change: '+0%',
+      trend: 'up',
+      currency: 'ETH'
+    },
+    {
+      id: 3,
+      title: 'Pending Invoices',
+      value: '0',
+      change: '+0%',
+      trend: 'up',
+    },
+    {
+      id: 4,
+      title: 'Overdue Invoices',
+      value: '0',
+      change: '+0%',
+      trend: 'down',
+    },
+  ]);
+
+  useEffect(() => {
+    const calculateStats = async () => {
+      if (!address) return;
+      setIsLoading(true);
+      
+      try {
+        const requests = await retrieveRequest(address);
+        let inflow = 0;
+        let outflow = 0;
+        let pendingCount = 0;
+        let overdueCount = 0;
+
+        requests.forEach((tx) => {
+          const currency = tx.currency.split('-')[0];
+          if (!['ETH', 'FAU'].includes(currency)) return;
+
+          const amount = parseFloat(formatUnits(BigInt(tx.expectedAmount), 18));
+          const isPaid = tx.balance?.balance && BigInt(tx.balance.balance) > 0;
+          const isPayee = address.toLowerCase() === tx.payee?.value.toLowerCase();
+          const isOverdue = tx.contentData?.dueDate && new Date(tx.contentData.dueDate) < new Date();
+
+          if (isPaid) {
+            if (isPayee) {
+              inflow += amount;
+            } else {
+              outflow += amount;
+            }
+          } else if (isOverdue) {
+            overdueCount++;
+          } else {
+            pendingCount++;
+          }
+        });
+
+        setStats([
+          {
+            id: 1,
+            title: 'Total Inflow',
+            value: inflow.toLocaleString(),
+            change: '+12.5%', 
+            trend: 'up',
+            currency: 'ETH'
+          },
+          {
+            id: 2,
+            title: 'Total Outflow',
+            value: outflow.toLocaleString(),
+            change: '+8.2%',
+            trend: 'up',
+            currency: 'ETH'
+          },
+          {
+            id: 3,
+            title: 'Pending Invoices',
+            value: pendingCount.toString(),
+            change: '+5.1%',
+            trend: 'up',
+          },
+          {
+            id: 4,
+            title: 'Overdue Invoices',
+            value: overdueCount.toString(),
+            change: '-7.3%',
+            trend: 'down',
+          },
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    calculateStats();
+  }, [address]);
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {stats.map((stat) => (
@@ -46,20 +127,32 @@ export const DashboardStats = () => {
             <div className="min-w-0 flex-1">
               <p className="text-sm text-gray-600 truncate">{stat.title}</p>
               <div className="mt-1 flex items-baseline space-x-1">
-                <p className="text-lg font-bold truncate">
-                  {stat.value}
-                </p>
-                {stat.currency && (
-                  <span className="text-xs text-gray-600">
-                    {stat.currency}
-                  </span>
+                {isLoading ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900" />
+                ) : (
+                  <>
+                    <p className="text-lg font-bold truncate">
+                      {stat.value}
+                    </p>
+                    {stat.currency && (
+                      <span className="text-xs text-gray-600">
+                        {stat.currency}
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
             </div>
             <div className={`flex items-center flex-shrink-0 ${
-              stat.trend === 'up' ? 'text-green-500' : 'text-red-500'
+              stat.title === 'Pending Invoices' 
+                ? 'text-yellow-500'
+                : stat.trend === 'up' 
+                  ? 'text-green-500' 
+                  : 'text-red-500'
             }`}>
-              {stat.trend === 'up' ? (
+              {stat.title === 'Pending Invoices' ? (
+                <ClockIcon className="w-4 h-4" />
+              ) : stat.trend === 'up' ? (
                 <ArrowTrendingUpIcon className="w-4 h-4" />
               ) : (
                 <ArrowTrendingDownIcon className="w-4 h-4" />

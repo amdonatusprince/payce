@@ -19,7 +19,6 @@ export const RecentInvoiceTransactions = () => {
       try {
         if (address) {
           const allRequests = await retrieveRequest(address);
-          console.log(allRequests, "ALL REQUESTS")
           const filteredRequests = allRequests
             .filter(request => request.contentData?.transactionType === 'invoice')
             .sort((a, b) => b.timestamp - a.timestamp);
@@ -41,7 +40,6 @@ export const RecentInvoiceTransactions = () => {
     if (invoice.balance?.balance && BigInt(invoice.balance.balance) >= BigInt(invoice.expectedAmount)) {
       return 'paid';
     }
-    if (invoice.state === 'accepted') return 'paid';
     if (new Date(invoice.contentData?.dueDate) < new Date()) return 'overdue';
     return 'pending';
   };

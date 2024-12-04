@@ -29,12 +29,12 @@ export const RecentInflowTransactions = () => {
       setIsLoading(true);
       try {
         if (address) {
-          const allRequests = await retrieveRequest(address);
+          const allRequests: Types.IRequestData[] = await retrieveRequest(address);
           // Filter only completed inflow transactions (where user is payee and payment is complete)
           const filteredRequests = allRequests.filter(request => {
             const isPayee = request.payee?.value.toLowerCase() === address.toLowerCase();
             const isPaid = request.balance?.balance && 
-              BigInt(request.balance.balance) >= 0;
+              BigInt(request.balance.balance) > 0;
             
             return isPayee && isPaid; // Only show completed payments
           });
