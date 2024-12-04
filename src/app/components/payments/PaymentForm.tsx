@@ -7,6 +7,7 @@ import { CurrencyTypes } from "@requestnetwork/types";
 import { useAccount, useWalletClient } from 'wagmi';
 import { parse } from 'papaparse';
 import { createBatchPayment } from '@/app/requests/BatchPayment';
+import { formatTransactionError } from '@/app/requests/utils/errorHandler';
 
 interface BatchRecipient {
   address: string;
@@ -83,6 +84,7 @@ export const PaymentForm = () => {
     setIsLoading(true);
     setError(null);
     setBatchResult(null);
+    setShowModal(false);
 
     try {
       if (!address || !walletClient) {
@@ -118,10 +120,12 @@ export const PaymentForm = () => {
         };
 
         const result = await createPaymentRequest({ params });
-        setForwarderAddress(result);
-        setShowModal(true);
-        resetForm();
-        setBatchRecipients([]);
+        if (result) {
+          setForwarderAddress(result);
+          setShowModal(true);
+          resetForm();
+          setBatchRecipients([]);
+        }
       } else {
         if (!batchRecipients.length) {
           throw new Error('Please upload a CSV file with recipients');
@@ -153,18 +157,19 @@ export const PaymentForm = () => {
         };
 
         const result = await createBatchPayment(params);
-        setBatchResult({
-          transactionHash: result.transactionHash
-        });
-        setShowModal(true);
-        resetForm();
-        setBatchRecipients([]);
+        if (result?.transactionHash) {
+          setBatchResult({
+            transactionHash: result.transactionHash
+          });
+          setShowModal(true);
+          resetForm();
+          setBatchRecipients([]);
+        }
       }
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'An unknown error occurred');
-      setBatchResult({ error: error instanceof Error ? error.message : 'An unknown error occurred' });
-      setShowModal(true);
-      console.error('Payment error:', error);
+      setError(formatTransactionError(error));
+      setBatchResult(error ? { error: formatTransactionError(error) } : null);
+      console.error('Full payment error:', error);
     } finally {
       setIsLoading(false);
       setLoadingStatus('');

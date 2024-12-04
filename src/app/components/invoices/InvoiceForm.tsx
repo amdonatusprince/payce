@@ -4,6 +4,7 @@ import { createRequest, REQUEST_STATUS } from '@/app/requests/CreateRequest';
 import { useAccount, useWalletClient } from 'wagmi';
 import { Types } from "@requestnetwork/request-client.js";
 import { CurrencyTypes } from "@requestnetwork/types";
+import { formatTransactionError } from '@/app/requests/utils/errorHandler';
 
 export const InvoiceForm = () => {
   const { address } = useAccount();
@@ -124,8 +125,8 @@ export const InvoiceForm = () => {
       setShowModal(true);
       resetForm();
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'An unknown error occurred');
-      console.error('Invoice creation error:', error);
+      setError(formatTransactionError(error));
+      console.error('Full error:', error);
     } finally {
       setIsLoading(false);
     }

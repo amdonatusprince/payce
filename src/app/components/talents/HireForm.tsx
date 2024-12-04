@@ -6,6 +6,7 @@ import { Types } from "@requestnetwork/request-client.js";
 import { CurrencyTypes } from "@requestnetwork/types";
 
 import type { Talent } from './TalentCard';
+import { formatTransactionError } from '@/app/requests/utils/errorHandler';
 
 interface HireFormProps {
   talent:  Talent;
@@ -88,8 +89,8 @@ export const HireForm: React.FC<HireFormProps> = ({ talent, onClose }) => {
       setShowModal(true);
       resetForm();
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'An unknown error occurred');
-      console.error('Error creating escrow payment:', error);
+      setError(formatTransactionError(error));
+      console.error('Full escrow error:', error);
     } finally {
       setIsLoading(false);
       setLoadingStatus('');
