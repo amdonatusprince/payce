@@ -46,7 +46,7 @@ export const dummyProducts: Product[] = [
     rating: 4.9,
     seller: {
       name: 'EcoWood Crafts',
-      avatar: '/assets/watch-shop.jpg',
+      avatar: '/assets/watch.jpg',
       rating: 4.9,
       address: '0x03E15BD74ee8AdBef0C58584fc6d2b859Cd053E6'
     }

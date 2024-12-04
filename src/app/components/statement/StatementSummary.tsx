@@ -1,7 +1,6 @@
 import { ArrowTrendingUpIcon, ArrowTrendingDownIcon } from '@heroicons/react/24/outline';
 import { useAccount } from 'wagmi';
 import { useState, useEffect } from 'react';
-import { Types } from "@requestnetwork/request-client.js";
 import { retrieveRequest } from '@/app/requests/RetrieveRequest';
 import { formatUnits } from 'viem';
 
@@ -76,7 +75,9 @@ export const StatementSummary = ({ dateRange }: StatementSummaryProps) => {
 
   const renderValue = (value: number) => {
     if (isLoading) {
-      return <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900" />;
+      return (
+        <span className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900" />
+      );
     }
     return value.toLocaleString();
   };

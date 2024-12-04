@@ -56,8 +56,8 @@ export const HireForm: React.FC<HireFormProps> = ({ talent, onClose }) => {
         payerAddress: address,
         expectedAmount: formData.amount,
         currency: {
-          type: Types.RequestLogic.CURRENCY.ETH as const,
-          value: 'ETH',
+          type: Types.RequestLogic.CURRENCY.ERC20 as const,
+          value: '0x370DE27fdb7D1Ff1e1BaA7D11c5820a324Cf623C',
           network: network.toLowerCase() as CurrencyTypes.ChainName,
           decimals: supportedCurrencies[formData.currency as keyof typeof supportedCurrencies].decimals,
         },

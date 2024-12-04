@@ -30,7 +30,7 @@ export function TransactionModal({ isOpen, onClose, transaction }: TransactionMo
     parseFloat(formatUnits(BigInt(amount.toString()), decimals));
 
   const getStatus = (tx: Types.IRequestData) => {
-    if (tx.balance?.balance && BigInt(tx.balance.balance) >= 0) {
+    if (tx.balance?.balance && BigInt(tx.balance.balance) > 0) {
       return 'paid';
     }
     if (tx.contentData?.dueDate && new Date(tx.contentData.dueDate) < new Date()) return 'overdue';
