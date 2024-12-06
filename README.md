@@ -2,6 +2,11 @@
 
 **Payce** is the first entirely on-chain, autonomous, and decentralized payment infrastructure for businesses and merchants, powered by the Request Network.  
 
+## Useful Resources
+Demo Video: https://youtu.be/IT4WqHqvcc4
+
+Website URL: https://payce.vercel.app
+
 ## Features  
 
 - **Seamless Payments**: Businesses, creators, and merchants can receive payments effortlessly from anyone using the Request Network’s single request forwarder.  
