@@ -5,6 +5,7 @@ import { Types } from "@requestnetwork/request-client.js";
 import { retrieveRequest } from '@/app/requests/RetrieveRequest';
 import { formatUnits } from 'viem';
 import { TransactionModal } from '../transactions/TransactionModal';
+import { getTransactionStatus } from '@/app/requests/utils/transactionStatus';
 
 export const RecentInvoiceTransactions = () => {
   const { address } = useAccount();
@@ -36,13 +37,8 @@ export const RecentInvoiceTransactions = () => {
     return parseFloat(formatUnits(BigInt(amount.toString()), decimals));
   };
 
-  const getStatus = (invoice: Types.IRequestData) => {
-    if (invoice.balance?.balance && BigInt(invoice.balance.balance) >= BigInt(invoice.expectedAmount)) {
-      return 'paid';
-    }
-    if (new Date(invoice.contentData?.dueDate) < new Date()) return 'overdue';
-    return 'pending';
-  };
+  const getStatus = (tx: Types.IRequestData) => getTransactionStatus(tx);
+
 
   const formatCurrency = (currency: string) => {
     return currency.split('-')[0];

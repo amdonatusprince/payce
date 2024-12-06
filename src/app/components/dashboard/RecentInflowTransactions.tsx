@@ -7,6 +7,7 @@ import { retrieveRequest } from '@/app/requests/RetrieveRequest';
 import { formatUnits } from 'viem';
 import { TransactionModal } from '../transactions/TransactionModal';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export const RecentInflowTransactions = () => {
   const router = useRouter();
@@ -52,15 +53,6 @@ export const RecentInflowTransactions = () => {
     fetchTransactions();
   }, [address]);
 
-  // Update getStatus function to remove accepted state
-  const getStatus = (tx: Types.IRequestData) => {
-    if (tx.balance?.balance && BigInt(tx.balance.balance) >= BigInt(tx.expectedAmount)) {
-      return 'paid';
-    }
-    if (tx.contentData?.dueDate && new Date(tx.contentData.dueDate) < new Date()) return 'overdue';
-    return 'pending';
-  };
-
   return (
     <div className="bg-white rounded-xl shadow-sm">
       <div className="p-6 border-b">
@@ -75,7 +67,20 @@ export const RecentInflowTransactions = () => {
         </div>
       </div>
 
-      {isLoading ? (
+      {!address ? (
+        <div className="flex flex-col items-center justify-center py-12">
+          <p className="text-gray-500 mb-4">Please connect your wallet to view recent inflows</p>
+          <Link 
+            href="/dashboard/settings"
+            className="text-primary-600 hover:text-primary-700 font-medium flex items-center gap-2"
+          >
+            Go to Settings
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+            </svg>
+          </Link>
+        </div>
+      ) : isLoading ? (
         <div className="flex flex-col items-center justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-4"></div>
           <p className="text-gray-600">Loading recent inflows...</p>

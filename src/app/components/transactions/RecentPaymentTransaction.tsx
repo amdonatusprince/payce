@@ -5,6 +5,7 @@ import { retrieveRequest } from '@/app/requests/RetrieveRequest';
 import { format } from 'date-fns';
 import { formatUnits } from 'viem';
 import { TransactionModal } from './TransactionModal';
+import { getTransactionStatus } from '@/app/requests/utils/transactionStatus';
 
 export function RecentPaymentTransactions() {
   const { address } = useAccount();
@@ -61,13 +62,7 @@ export function RecentPaymentTransactions() {
     setIsModalOpen(true);
   };
 
-  const getStatus = (tx: Types.IRequestData) => {
-    if (tx.balance?.balance && BigInt(tx.balance.balance) >= 0 ) {
-      return 'paid';
-    }
-    if (tx.contentData?.dueDate && new Date(tx.contentData.dueDate) < new Date()) return 'overdue';
-    return 'pending';
-  };
+  const getStatus = (tx: Types.IRequestData) => getTransactionStatus(tx);
 
   if (recentTransactions.length === 0) {
     return <p className="text-gray-500 flex justify-center py-12">No recent transactions</p>;

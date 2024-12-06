@@ -22,8 +22,8 @@ export const DashboardStats = () => {
       id: 2,
       title: 'Total Outflow',
       value: '0',
-      change: '+0%',
-      trend: 'up',
+      change: '-0%',
+      trend: 'down',
       currency: 'ETH'
     },
     {
@@ -89,8 +89,8 @@ export const DashboardStats = () => {
             id: 2,
             title: 'Total Outflow',
             value: outflow.toLocaleString(),
-            change: '+8.2%',
-            trend: 'up',
+            change: '-4.2%',
+            trend: 'down',
             currency: 'ETH'
           },
           {

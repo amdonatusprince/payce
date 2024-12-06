@@ -7,6 +7,7 @@ import { formatUnits } from 'viem';
 import { TransactionModal } from './TransactionModal';
 import { exportTransactions } from '@/lib/exportUtils';
 import { Currency, Transaction, TransactionStatus } from '@/types';
+import { getTransactionStatus } from '@/app/requests/utils/transactionStatus';
 
 export const TransactionHistory = () => {
   const { address } = useAccount();
@@ -20,13 +21,7 @@ export const TransactionHistory = () => {
   const formatCurrency = (currency: string) => currency.split('-')[0];
   const formatAmount = (amount: string | number, decimals: number = 18) => 
     parseFloat(formatUnits(BigInt(amount.toString()), decimals));
-  const getStatus = (tx: Types.IRequestData) => {
-    if (tx.balance?.balance && BigInt(tx.balance.balance) > 0) {
-      return 'paid';
-    }
-    if (tx.contentData?.dueDate && new Date(tx.contentData.dueDate) < new Date()) return 'overdue';
-    return 'pending';
-  };
+  const getStatus = (tx: Types.IRequestData) => getTransactionStatus(tx);
 
   useEffect(() => {
     const fetchTransactions = async () => {
