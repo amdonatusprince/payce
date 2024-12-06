@@ -7,7 +7,7 @@ import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
 import { handlePayRequest, RequestStatus } from '@/app/requests/PayRequest';
 import { useState } from 'react';
 import { EscrowOperations } from '@/app/requests/EscrowPayment';
-
+import { getTransactionStatus } from '@/app/requests/utils/transactionStatus';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -29,13 +29,7 @@ export function TransactionModal({ isOpen, onClose, transaction }: TransactionMo
   const formatAmount = (amount: string | number, decimals: number = 18) => 
     parseFloat(formatUnits(BigInt(amount.toString()), decimals));
 
-  const getStatus = (tx: Types.IRequestData) => {
-    if (tx.balance?.balance && BigInt(tx.balance.balance) > 0) {
-      return 'paid';
-    }
-    if (tx.contentData?.dueDate && new Date(tx.contentData.dueDate) < new Date()) return 'overdue';
-    return 'pending';
-  };
+  const getStatus = (tx: Types.IRequestData) => getTransactionStatus(tx);
 
   const handlePayNow = async () => {
     if (!address || !publicClient || !walletClient) return;
