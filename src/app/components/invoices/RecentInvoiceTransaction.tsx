@@ -58,7 +58,7 @@ export const RecentInvoiceTransactions = () => {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm">
+    <div className="bg-white rounded-xl shadow-sm w-full max-w-[100vw] overflow-hidden">
       {/* Desktop View */}
       <div className="hidden sm:block">
         <table className="w-full">
@@ -72,7 +72,7 @@ export const RecentInvoiceTransactions = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-200">
             {invoices.map((invoice) => (
               <tr 
                 key={invoice.requestId}
@@ -143,21 +143,22 @@ export const RecentInvoiceTransactions = () => {
             </div>
 
             <div className="space-y-1">
-              <div className="flex justify-between items-baseline">
-                <div className="text-xs font-medium text-gray-900">
+              <div className="flex justify-between items-baseline gap-2">
+                <div className="text-xs font-medium text-gray-900 truncate flex-1">
                   {invoice.contentData?.clientDetails?.name || 'Unknown Client'}
                 </div>
-                <div className="text-xs font-medium text-gray-900">
+                <div className="text-xs font-medium whitespace-nowrap">
                   {formatAmount(invoice.expectedAmount)} {formatCurrency(invoice.currency)}
                 </div>
               </div>
 
-              <div className="flex justify-between text-xs text-gray-500">
-                <div>Due: {invoice.contentData?.dueDate 
-                  ? format(new Date(invoice.contentData.dueDate), 'MMM d, yyyy')
-                  : 'No due date'}
+              <div className="flex justify-between text-xs text-gray-500 gap-2">
+                <div className="truncate flex-1">
+                  Due: {invoice.contentData?.dueDate 
+                    ? format(new Date(invoice.contentData.dueDate), 'MMM d, yyyy')
+                    : 'No due date'}
                 </div>
-                <div className="text-right">
+                <div className="whitespace-nowrap">
                   #{invoice.requestId.slice(0, 6)}
                 </div>
               </div>
