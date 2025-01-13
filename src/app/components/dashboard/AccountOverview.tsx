@@ -36,36 +36,6 @@ export const AccountOverview = () => {
             </span>
           </div>
         </div>
-
-        <div className="border-t pt-4">
-          <h3 className="text-sm text-gray-600 mb-3">Quick Actions</h3>
-          <div className="grid grid-cols-2 gap-2">
-            <button 
-              onClick={() => router.push('/talents')}
-              className="p-2 text-sm text-center border rounded-lg hover:bg-gray-50"
-            >
-              Talent Hub
-            </button>
-            <button 
-              onClick={() => router.push('/marketplace')}
-              className="p-2 text-sm text-center border rounded-lg hover:bg-gray-50"
-            >
-              Marketplace
-            </button>
-            <button 
-              onClick={() => router.push('/dashboard/settings')}
-              className="p-2 text-sm text-center border rounded-lg hover:bg-gray-50"
-            >
-              Settings
-            </button>
-            <button 
-              onClick={() => router.push('/dashboard/statement')}
-              className="p-2 text-sm text-center border rounded-lg hover:bg-gray-50"
-            >
-              My Statement
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );

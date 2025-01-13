@@ -76,94 +76,100 @@ export const StatementSummary = ({ dateRange }: StatementSummaryProps) => {
   const renderValue = (value: number) => {
     if (isLoading) {
       return (
-        <span className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900" />
+        <span className="inline-block animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-gray-900" />
       );
     }
     return value.toLocaleString();
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div className="bg-white rounded-xl p-4 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-600">Total Inflow</p>
-            <div className="flex items-baseline space-x-1">
-              <p className="text-lg font-bold text-green-600">
-                +{renderValue(summary.totalInflow)}
-              </p>
-              <span className="text-xs text-gray-600">ETH</span>
-            </div>
-          </div>
-          <div className="p-2 bg-green-50 rounded-lg">
-            <ArrowTrendingUpIcon className="w-5 h-5 text-green-600" />
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl p-4 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-600">Total Outflow</p>
-            <div className="flex items-baseline space-x-1">
-              <p className="text-lg font-bold text-red-600">
-                -{renderValue(summary.totalOutflow)}
-              </p>
-              <span className="text-xs text-gray-600">ETH</span>
-            </div>
-          </div>
-          <div className="p-2 bg-red-50 rounded-lg">
-            <ArrowTrendingDownIcon className="w-5 h-5 text-red-600" />
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl p-4 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-600">Net Change</p>
-            <div className="flex items-baseline space-x-1">
-              <p className={`text-lg font-bold ${
-                summary.netChange >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {summary.netChange >= 0 ? '+' : '-'}
-                {Math.abs(summary.netChange).toLocaleString()}
-              </p>
-              <span className="text-xs text-gray-600">ETH</span>
-            </div>
-          </div>
-          <div className={`p-2 rounded-lg ${
-            summary.netChange >= 0 ? 'bg-green-50' : 'bg-red-50'
-          }`}>
-            {summary.netChange >= 0 ? (
-              <ArrowTrendingUpIcon className="w-5 h-5 text-green-600" />
-            ) : (
-              <ArrowTrendingDownIcon className="w-5 h-5 text-red-600" />
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl p-4 shadow-sm">
-        <div>
-          <p className="text-sm text-gray-600">Pending</p>
-          <div className="mt-1 space-y-1">
-            <div className="flex justify-between text-sm">
-              <span>Inflow:</span>
+    <div className="w-full max-w-[100vw] px-2 sm:px-0">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
+        {/* Inflow Card */}
+        <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-gray-600">Total Inflow</p>
               <div className="flex items-baseline space-x-1">
-                <span className="text-green-600">
-                  +{renderValue(summary.pendingInflow)}
-                </span>
-                <span className="text-xs text-gray-600">ETH</span>
+                <p className="text-sm sm:text-lg font-bold text-green-600">
+                  +{renderValue(summary.totalInflow)}
+                </p>
+                <span className="text-[10px] sm:text-xs text-gray-600">ETH</span>
               </div>
             </div>
-            <div className="flex justify-between text-sm">
-              <span>Outflow:</span>
+            <div className="p-1.5 sm:p-2 bg-green-50 rounded-lg">
+              <ArrowTrendingUpIcon className="w-3 h-3 sm:w-5 sm:h-5 text-green-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Outflow Card */}
+        <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-gray-600">Total Outflow</p>
               <div className="flex items-baseline space-x-1">
-                <span className="text-red-600">
-                  -{renderValue(summary.pendingOutflow)}
-                </span>
-                <span className="text-xs text-gray-600">ETH</span>
+                <p className="text-sm sm:text-lg font-bold text-red-600">
+                  -{renderValue(summary.totalOutflow)}
+                </p>
+                <span className="text-[10px] sm:text-xs text-gray-600">ETH</span>
+              </div>
+            </div>
+            <div className="p-1.5 sm:p-2 bg-red-50 rounded-lg">
+              <ArrowTrendingDownIcon className="w-3 h-3 sm:w-5 sm:h-5 text-red-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Net Change Card */}
+        <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-gray-600">Net Change</p>
+              <div className="flex items-baseline space-x-1">
+                <p className={`text-sm sm:text-lg font-bold ${
+                  summary.netChange >= 0 ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {summary.netChange >= 0 ? '+' : '-'}
+                  {Math.abs(summary.netChange).toLocaleString()}
+                </p>
+                <span className="text-[10px] sm:text-xs text-gray-600">ETH</span>
+              </div>
+            </div>
+            <div className={`p-1.5 sm:p-2 rounded-lg ${
+              summary.netChange >= 0 ? 'bg-green-50' : 'bg-red-50'
+            }`}>
+              {summary.netChange >= 0 ? (
+                <ArrowTrendingUpIcon className="w-3 h-3 sm:w-5 sm:h-5 text-green-600" />
+              ) : (
+                <ArrowTrendingDownIcon className="w-3 h-3 sm:w-5 sm:h-5 text-red-600" />
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Pending Card */}
+        <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
+          <div>
+            <p className="text-xs sm:text-sm text-gray-600">Pending</p>
+            <div className="mt-1 space-y-1">
+              <div className="flex justify-between text-xs sm:text-sm">
+                <span>Inflow:</span>
+                <div className="flex items-baseline space-x-1">
+                  <span className="text-green-600">
+                    +{renderValue(summary.pendingInflow)}
+                  </span>
+                  <span className="text-[10px] sm:text-xs text-gray-600">ETH</span>
+                </div>
+              </div>
+              <div className="flex justify-between text-xs sm:text-sm">
+                <span>Outflow:</span>
+                <div className="flex items-baseline space-x-1">
+                  <span className="text-red-600">
+                    -{renderValue(summary.pendingOutflow)}
+                  </span>
+                  <span className="text-[10px] sm:text-xs text-gray-600">ETH</span>
+                </div>
               </div>
             </div>
           </div>

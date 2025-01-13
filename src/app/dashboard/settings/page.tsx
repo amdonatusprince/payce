@@ -5,10 +5,8 @@ import { NotificationSettings } from '../../components/settings/NotificationSett
 
 export default function SettingsPage() {
   return (
-    <div className="max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-8">Account Settings</h1>
-      
-      <div className="space-y-8">
+    <div className="w-full overflow-hidden px-2 sm:px-6">
+      <div className="space-y-4 sm:space-y-8">
         <AccountSettings />
         <SpendingLimits />
         <SecuritySettings />

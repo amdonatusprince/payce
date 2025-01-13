@@ -62,21 +62,58 @@ export const TransactionHistory = () => {
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
+  const totalPages = Math.ceil(transactions.length / transactionsPerPage);
+  
+  const renderPageNumbers = () => {
+    const pageNumbers = [];
+    const showPages = 3; // Show only 3 pages total
+    
+    let startPage = currentPage;
+    let endPage = Math.min(startPage + 2, totalPages);
+    
+    // If we're near the end, adjust the start page
+    if (endPage - startPage + 1 < showPages) {
+      startPage = Math.max(1, endPage - showPages + 1);
+    }
+
+    // Add page numbers
+    for (let i = startPage; i <= endPage; i++) {
+      if (i > 0 && i <= totalPages) {
+        pageNumbers.push(
+          <button
+            key={i}
+            onClick={(e) => {
+              e.stopPropagation();
+              paginate(i);
+            }}
+            className={`min-w-[2rem] px-2 py-1 text-xs border rounded ${
+              currentPage === i ? 'btn-primary' : 'btn-secondary'
+            }`}
+          >
+            {i}
+          </button>
+        );
+      }
+    }
+
+    return pageNumbers;
+  };
+
   return (
-    <div className="bg-white rounded-xl shadow-sm">
-      <div className="p-6 border-b">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">Transaction History</h2>
-          <div className="flex gap-4">
+    <div className="bg-white rounded-xl shadow-sm w-full max-w-[100vw] overflow-hidden">
+      <div className="p-3 sm:p-6 border-b">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+          <h2 className="text-lg sm:text-xl font-semibold">Transaction History</h2>
+          <div className="flex gap-2 sm:ml-auto">
             <button 
               onClick={() => handleExport('csv')}
-              className="btn-secondary"
+              className="flex-1 sm:flex-none btn-secondary text-xs sm:text-sm px-2 sm:px-4 py-1.5 sm:py-2"
             >
               Export CSV
             </button>
             <button 
               onClick={() => handleExport('pdf')}
-              className="btn-secondary"
+              className="flex-1 sm:flex-none btn-secondary text-xs sm:text-sm px-2 sm:px-4 py-1.5 sm:py-2"
             >
               Export PDF
             </button>
@@ -84,93 +121,166 @@ export const TransactionHistory = () => {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-4"></div>
-            <p className="text-gray-600">Loading transaction history...</p>
-          </div>
-        ) : transactions.length === 0 ? (
-          <div className="flex justify-center py-12">
-            <p className="text-gray-500">No transactions</p>
-          </div>
-        ) : (
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reference</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {currentTransactions.map((tx) => (
-                <tr 
-                  key={tx.requestId}
-                  onClick={() => {
-                    setSelectedTx(tx);
-                    setIsModalOpen(true);
-                  }}
-                  className="hover:bg-gray-50 cursor-pointer"
-                >
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {format(new Date(tx.timestamp * 1000), 'MMM d, yyyy')}
-                  </td>
-                  <td className="px-6 py-4 text-sm">
-                    {`${tx.requestId.slice(0, 6)}...${tx.requestId.slice(-4)}`}
-                  </td>
-                  <td className="px-6 py-4 text-sm">
-                    {tx.contentData?.transactionType || 'Unknown'}
-                  </td>
-                  <td className="px-6 py-4 text-sm">
-                    {tx.contentData?.reason || 'No reason provided'}
-                  </td>
-                  <td className={`px-6 py-4 text-sm text-right whitespace-nowrap ${
-                    address?.toLowerCase() === tx.payee?.value.toLowerCase() ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {address?.toLowerCase() === tx.payee?.value.toLowerCase() ? '+' : '-'}
-                    {formatAmount(tx.expectedAmount)} {formatCurrency(tx.currency)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      getStatus(tx) === 'paid' 
-                        ? 'bg-green-100 text-green-800'
-                        : getStatus(tx) === 'overdue'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {getStatus(tx)}
-                    </span>
-                  </td>
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-4"></div>
+          <p className="text-gray-600 text-sm">Loading transaction history...</p>
+        </div>
+      ) : transactions.length === 0 ? (
+        <div className="flex justify-center py-12">
+          <p className="text-gray-500 text-sm">No transactions</p>
+        </div>
+      ) : (
+        <>
+          {/* Desktop View */}
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reference</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {currentTransactions.map((tx) => (
+                  <tr 
+                    key={tx.requestId}
+                    onClick={() => {
+                      setSelectedTx(tx);
+                      setIsModalOpen(true);
+                    }}
+                    className="hover:bg-gray-50 cursor-pointer"
+                  >
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      {format(new Date(tx.timestamp * 1000), 'MMM d, yyyy')}
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      {`${tx.requestId.slice(0, 6)}...${tx.requestId.slice(-4)}`}
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      {tx.contentData?.transactionType || 'Unknown'}
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      {tx.contentData?.reason || 'No reason provided'}
+                    </td>
+                    <td className={`px-6 py-4 text-sm text-right ${
+                      address?.toLowerCase() === tx.payee?.value.toLowerCase() ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {address?.toLowerCase() === tx.payee?.value.toLowerCase() ? '+' : '-'}
+                      {formatAmount(tx.expectedAmount)} {formatCurrency(tx.currency)}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        getStatus(tx) === 'paid' 
+                          ? 'bg-green-100 text-green-800'
+                          : getStatus(tx) === 'overdue'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {getStatus(tx)}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-      {/* Pagination - separated from transaction data */}
+          {/* Mobile View */}
+          <div className="sm:hidden divide-y divide-gray-200">
+            {currentTransactions.map((tx) => (
+              <div
+                key={tx.requestId}
+                onClick={() => {
+                  setSelectedTx(tx);
+                  setIsModalOpen(true);
+                }}
+                className="p-3 hover:bg-gray-50 cursor-pointer"
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <div className="text-xs text-gray-500">
+                    {format(new Date(tx.timestamp * 1000), 'MMM d, yyyy')}
+                  </div>
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    getStatus(tx) === 'paid' 
+                      ? 'bg-green-100 text-green-800'
+                      : getStatus(tx) === 'overdue'
+                      ? 'bg-red-100 text-red-800'
+                      : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {getStatus(tx)}
+                  </span>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex justify-between items-baseline gap-2">
+                    <div className="text-xs font-medium text-gray-900 truncate flex-1">
+                      {tx.contentData?.reason || 'No reason provided'}
+                    </div>
+                    <div className={`text-xs font-medium whitespace-nowrap ${
+                      address?.toLowerCase() === tx.payee?.value.toLowerCase() 
+                        ? 'text-green-600' 
+                        : 'text-red-600'
+                    }`}>
+                      {address?.toLowerCase() === tx.payee?.value.toLowerCase() ? '+' : '-'}
+                      {formatAmount(tx.expectedAmount)} {formatCurrency(tx.currency)}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between text-xs text-gray-500 gap-2">
+                    <div className="truncate flex-1">
+                      {tx.contentData?.transactionType || 'Unknown'}
+                    </div>
+                    <div className="whitespace-nowrap">
+                      #{tx.requestId.slice(0, 6)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Pagination */}
       {!isLoading && transactions.length > 0 && (
-        <div className="flex justify-center my-6 pb-4">
-          {Array.from({ length: Math.ceil(transactions.length / transactionsPerPage) }, (_, i) => (
-            <button
-              key={i}
-              onClick={(e) => {
-                e.stopPropagation(); 
-                paginate(i + 1);
-              }}
-              className={`mx-1 px-3 py-1 border rounded ${
-                currentPage === i + 1 
-                  ? 'btn-primary'
-                  : 'btn-secondary'
-              }`}
-            >
-              {i + 1}
-            </button>
-          ))}
+        <div className="flex items-center justify-center gap-1 my-4 pb-2 px-2">
+          {/* Previous button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (currentPage > 1) paginate(currentPage - 1);
+            }}
+            disabled={currentPage === 1}
+            className={`min-w-[2rem] px-2 py-1 text-xs border rounded ${
+              currentPage === 1 ? 'text-gray-400 border-gray-200 cursor-not-allowed' : 'btn-secondary'
+            }`}
+          >
+            ←
+          </button>
+
+          {/* Current page indicator */}
+          <span className="text-xs text-gray-500 px-2">
+            Page {currentPage} of {totalPages}
+          </span>
+
+          {/* Next button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (currentPage < totalPages) paginate(currentPage + 1);
+            }}
+            disabled={currentPage === totalPages}
+            className={`min-w-[2rem] px-2 py-1 text-xs border rounded ${
+              currentPage === totalPages ? 'text-gray-400 border-gray-200 cursor-not-allowed' : 'btn-secondary'
+            }`}
+          >
+            →
+          </button>
         </div>
       )}
 

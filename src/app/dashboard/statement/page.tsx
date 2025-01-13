@@ -14,17 +14,27 @@ export default function StatementPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">My Statement</h1>
-        <DateRangePicker
-          dateRange={dateRange}
-          onChange={setDateRange}
-        />
+    <div className="w-full max-w-[100vw] space-y-4 px-2 sm:px-4 overflow-hidden">
+      {/* Header Section */}
+      <div className="w-full">
+        {/* Date Range Picker */}
+        <div className="w-full mb-4">
+          <DateRangePicker
+            dateRange={dateRange}
+            onChange={setDateRange}
+          />
+        </div>
       </div>
 
-      <StatementSummary dateRange={dateRange} />
-      <AccountStatement dateRange={dateRange} />
+      {/* Summary Cards */}
+      <div className="w-full">
+        <StatementSummary dateRange={dateRange} />
+      </div>
+
+      {/* Transaction Table */}
+      <div className="w-full">
+        <AccountStatement dateRange={dateRange} />
+      </div>
     </div>
   );
 } 
