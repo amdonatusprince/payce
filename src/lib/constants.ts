@@ -1,20 +1,14 @@
 export const supportedCurrencies = {
-  'ETH-sepolia-sepolia': { decimals: 18 },
-  'ETH-mainnet': { decimals: 18 },
-  'ETH-base': { decimals: 18 },
-  'USDT-base': { decimals: 6 },
-  'USDC-base': { decimals: 6 },
-  'USDC-mainnet': { decimals: 6 },
+  'ETH': { decimals: 18 },
+  'USDT': { decimals: 6 },
+  'USDC': { decimals: 6 },
 
 } as const;
   
   export const supportedChains = [
-    'Mainnet',
-    'Sepolia',
-    'Polygon',
-    'Arbitrum',
-    'Optimism',
-    'Base'
+    'Base',
+    'Solana',
+    'Mode',
   ] as const;
   
   export const paymentStatuses = [
