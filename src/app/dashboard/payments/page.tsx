@@ -8,8 +8,8 @@ export default function PaymentsPage() {
   
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold">Payments</h1>
+      <div className="flex justify-end">
+        {/* <h1 className="text-2xl font-semibold">Payments</h1> */}
         <div className="flex gap-3">
           <button 
             className="btn-secondary"

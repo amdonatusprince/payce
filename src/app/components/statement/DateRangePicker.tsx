@@ -11,40 +11,44 @@ interface DateRangePickerProps {
 
 export const DateRangePicker = ({ dateRange, onChange }: DateRangePickerProps) => {
   return (
-    <div className="flex items-center gap-4">
-      <div className="flex items-center gap-2">
-        <label className="text-sm font-medium">From:</label>
-        <input
-          type="date"
-          className="px-3 py-2 border rounded-lg"
-          value={format(dateRange.from, 'yyyy-MM-dd')}
-          onChange={(e) => {
-            onChange({
-              ...dateRange,
-              from: new Date(e.target.value),
-            });
-          }}
-        />
+    <div className="w-full max-w-[100vw] px-2 sm:px-0">
+      {/* Date Inputs - Side by Side */}
+      <div className="flex gap-2 mb-2">
+        <div className="flex-1 flex items-center min-w-0">
+          <label className="text-xs font-medium w-8 shrink-0">From:</label>
+          <input
+            type="date"
+            className="flex-1 min-w-0 px-1.5 py-1 border rounded-lg text-xs"
+            value={format(dateRange.from, 'yyyy-MM-dd')}
+            onChange={(e) => {
+              onChange({
+                ...dateRange,
+                from: new Date(e.target.value),
+              });
+            }}
+          />
+        </div>
+
+        <div className="flex-1 flex items-center min-w-0">
+          <label className="text-xs font-medium w-8 shrink-0">To:</label>
+          <input
+            type="date"
+            className="flex-1 min-w-0 px-1.5 py-1 border rounded-lg text-xs"
+            value={format(dateRange.to, 'yyyy-MM-dd')}
+            onChange={(e) => {
+              onChange({
+                ...dateRange,
+                to: new Date(e.target.value),
+              });
+            }}
+          />
+        </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <label className="text-sm font-medium">To:</label>
-        <input
-          type="date"
-          className="px-3 py-2 border rounded-lg"
-          value={format(dateRange.to, 'yyyy-MM-dd')}
-          onChange={(e) => {
-            onChange({
-              ...dateRange,
-              to: new Date(e.target.value),
-            });
-          }}
-        />
-      </div>
-
+      {/* Quick Select Buttons */}
       <div className="flex gap-2">
         <button
-          className="btn-secondary text-sm"
+          className="flex-1 btn-secondary text-xs px-2 py-1.5"
           onClick={() => {
             const today = new Date();
             onChange({
@@ -56,7 +60,7 @@ export const DateRangePicker = ({ dateRange, onChange }: DateRangePickerProps) =
           Last 30 Days
         </button>
         <button
-          className="btn-secondary text-sm"
+          className="flex-1 btn-secondary text-xs px-2 py-1.5"
           onClick={() => {
             const today = new Date();
             onChange({

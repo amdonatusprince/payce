@@ -117,25 +117,25 @@ export const DashboardStats = () => {
   }, [address]);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {stats.map((stat) => (
         <div
           key={stat.id}
           className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow"
         >
-          <div className="flex justify-between items-start space-x-2">
+          <div className="flex justify-between items-start">
             <div className="min-w-0 flex-1">
               <p className="text-sm text-gray-600 truncate">{stat.title}</p>
-              <div className="mt-1 flex items-baseline space-x-1">
+              <div className="mt-1 flex items-baseline gap-1">
                 {isLoading ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900" />
                 ) : (
                   <>
-                    <p className="text-lg font-bold truncate">
+                    <p className="text-base md:text-lg font-bold truncate">
                       {stat.value}
                     </p>
                     {stat.currency && (
-                      <span className="text-xs text-gray-600">
+                      <span className="text-xs text-gray-600 shrink-0">
                         {stat.currency}
                       </span>
                     )}
@@ -143,7 +143,7 @@ export const DashboardStats = () => {
                 )}
               </div>
             </div>
-            <div className={`flex items-center flex-shrink-0 ${
+            <div className={`flex items-center shrink-0 ml-2 ${
               stat.title === 'Pending Invoices' 
                 ? 'text-yellow-500'
                 : stat.trend === 'up' 

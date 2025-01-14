@@ -1,6 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/dashboard',
+        permanent: true,
+      },
+    ];
+  },
   webpack: (config: any) => {
+    
     // Handle source maps properly
     config.module.rules.push({
       test: /\.js\.map$/,

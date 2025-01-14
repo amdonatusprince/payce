@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { supportedCurrencies } from '@/lib/constants';
+import { supportedCurrencies, supportedChains } from '@/lib/constants';
 import { createRequest, REQUEST_STATUS } from '@/app/requests/CreateRequest';
 import { useAccount, useWalletClient } from 'wagmi';
 import { Types } from "@requestnetwork/request-client.js";
 import { CurrencyTypes } from "@requestnetwork/types";
 import { formatTransactionError } from '@/app/requests/utils/errorHandler';
+import { InvoicePreview } from './InvoicePreview';
 
 export const InvoiceForm = () => {
   const { address } = useAccount();
@@ -13,6 +14,8 @@ export const InvoiceForm = () => {
   const [loadingStatus, setLoadingStatus] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   
   const initialFormData = {
     // Business Details
@@ -31,6 +34,9 @@ export const InvoiceForm = () => {
     currency: Object.keys(supportedCurrencies)[0],
     dueDate: '',
     notes: '',
+    invoiceReference: '',
+    businessLogo: null as File | null,
+    network: supportedChains[0],
   };
 
   const initialItems = [{ description: '', amount: 0 }];
@@ -136,200 +142,270 @@ export const InvoiceForm = () => {
     setShowModal(false);
   };
 
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFormData({ ...formData, businessLogo: file });
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
-    <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-sm p-6">
+    <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-sm p-4 sm:p-6">
       {error && (
         <div className="mb-4 p-4 text-red-700 bg-red-100 rounded-lg">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Business Details Section */}
-        <div className="border-b pb-6">
-          <h3 className="text-lg font-medium mb-4">Business Details</h3>
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium mb-2">Business Name</label>
-              <input
-                type="text"
-                name="businessName"
-                value={formData.businessName}
-                onChange={handleInputChange}
-                className="w-full p-3 border rounded-lg"
-              />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium mb-2">Invoice Reference</label>
+                <input
+                  type="text"
+                  name="invoiceReference"
+                  value={formData.invoiceReference}
+                  onChange={handleInputChange}
+                  placeholder="INV-0000"
+                  className="w-full p-3 border rounded-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Business Logo</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoUpload}
+                  className="w-full p-3 border rounded-lg"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Business Email</label>
-              <input
-                type="email"
-                name="businessEmail"
-                value={formData.businessEmail}
-                onChange={handleInputChange}
-                className="w-full p-3 border rounded-lg"
-              />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-sm font-medium mb-2">Business Address</label>
-              <textarea
-                name="businessAddress"
-                value={formData.businessAddress}
-                onChange={handleInputChange}
-                className="w-full p-3 border rounded-lg"
-                rows={2}
-              />
-            </div>
-          </div>
-        </div>
 
-        {/* Client Details Section */}
-        <div className="border-b pb-6">
-          <h3 className="text-lg font-medium mb-4">Client Details</h3>
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium mb-2">Client Name</label>
-              <input
-                type="text"
-                name="clientName"
-                value={formData.clientName}
-                onChange={handleInputChange}
-                className="w-full p-3 border rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Client Email</label>
-              <input
-                type="email"
-                name="clientEmail"
-                value={formData.clientEmail}
-                onChange={handleInputChange}
-                className="w-full p-3 border rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Client Wallet Address</label>
-              <input
-                type="text"
-                name="clientWallet"
-                value={formData.clientWallet}
-                onChange={handleInputChange}
-                className="w-full p-3 border rounded-lg"
-                placeholder="0x..."
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Client Address</label>
-              <textarea
-                name="clientAddress"
-                value={formData.clientAddress}
-                onChange={handleInputChange}
-                className="w-full p-3 border rounded-lg"
-                rows={2}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Invoice Details */}
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium mb-2">Due Date</label>
-              <input
-                type="date"
-                name="dueDate"
-                value={formData.dueDate}
-                onChange={handleInputChange}
-                className="w-full p-3 border rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Currency</label>
-              <select 
-                name="currency"
-                value={formData.currency}
-                onChange={handleInputChange}
-                className="w-full p-3 border rounded-lg"
-              >
-                {Object.keys(supportedCurrencies).map((currency) => {
-                  const [token, network] = currency.split('-');
-                  const displayText = network === 'sepolia-sepolia' 
-                    ? `${token} - Sepolia`
-                    : `${token} - ${network.charAt(0).toUpperCase() + network.slice(1)}`;
-                  
-                  return (
-                    <option key={currency} value={currency} className="truncate">
-                      {displayText}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Invoice Items</label>
-            <div className="space-y-4">
-              {items.map((item, index) => (
-                <div key={index} className="flex gap-4">
+            <div className="border-b pb-6">
+              <h3 className="text-lg font-medium mb-4">Business Details</h3>
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Business Name</label>
                   <input
                     type="text"
-                    value={item.description}
-                    onChange={(e) => handleItemChange(index, 'description', e.target.value)}
-                    className="flex-1 p-3 border rounded-lg"
-                    placeholder="Item description"
-                  />
-                  <input
-                    type="number"
-                    value={item.amount}
-                    onChange={(e) => handleItemChange(index, 'amount', e.target.value)}
-                    className="w-32 p-3 border rounded-lg"
-                    placeholder="Amount"
+                    name="businessName"
+                    value={formData.businessName}
+                    onChange={handleInputChange}
+                    className="w-full p-3 border rounded-lg"
                   />
                 </div>
-              ))}
+                <div>
+                  <label className="block text-sm font-medium mb-2">Business Email</label>
+                  <input
+                    type="email"
+                    name="businessEmail"
+                    value={formData.businessEmail}
+                    onChange={handleInputChange}
+                    className="w-full p-3 border rounded-lg"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-2">Business Address</label>
+                  <textarea
+                    name="businessAddress"
+                    value={formData.businessAddress}
+                    onChange={handleInputChange}
+                    className="w-full p-3 border rounded-lg"
+                    rows={2}
+                  />
+                </div>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setItems([...items, { description: '', amount: 0 }])}
-              className="mt-4 text-primary-600 hover:text-primary-700"
-            >
-              + Add Item
-            </button>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-2">Notes</label>
-            <textarea
-              name="notes"
-              value={formData.notes}
-              onChange={handleInputChange}
-              className="w-full p-3 border rounded-lg"
-              rows={4}
-              placeholder="Reson for invoice, additional notes or payment terms..."
-            />
-          </div>
+            <div className="border-b pb-6">
+              <h3 className="text-lg font-medium mb-4">Client Details</h3>
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Client Name</label>
+                  <input
+                    type="text"
+                    name="clientName"
+                    value={formData.clientName}
+                    onChange={handleInputChange}
+                    className="w-full p-3 border rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Client Email</label>
+                  <input
+                    type="email"
+                    name="clientEmail"
+                    value={formData.clientEmail}
+                    onChange={handleInputChange}
+                    className="w-full p-3 border rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Client Wallet Address</label>
+                  <input
+                    type="text"
+                    name="clientWallet"
+                    value={formData.clientWallet}
+                    onChange={handleInputChange}
+                    className="w-full p-3 border rounded-lg"
+                    placeholder="0x..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Client Address</label>
+                  <textarea
+                    name="clientAddress"
+                    value={formData.clientAddress}
+                    onChange={handleInputChange}
+                    className="w-full p-3 border rounded-lg"
+                    rows={2}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Due Date</label>
+                  <input
+                    type="date"
+                    name="dueDate"
+                    value={formData.dueDate}
+                    onChange={handleInputChange}
+                    className="w-full p-3 border rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Currency</label>
+                  <select 
+                    name="currency"
+                    value={formData.currency}
+                    onChange={handleInputChange}
+                    className="w-full p-3 border rounded-lg"
+                  >
+                    {Object.keys(supportedCurrencies).map((currency) => (
+                      <option key={currency} value={currency} className="truncate">
+                        {currency}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Network</label>
+                  <select 
+                    name="network"
+                    value={formData.network}
+                    onChange={handleInputChange}
+                    className="w-full p-3 border rounded-lg"
+                  >
+                    {supportedChains.map((chain) => (
+                      <option key={chain} value={chain}>
+                        {chain}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Invoice Items</label>
+                <div className="space-y-4">
+                  {items.map((item, index) => (
+                    <div key={index} className="flex gap-4">
+                      <input
+                        type="text"
+                        value={item.description}
+                        onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                        className="flex-1 p-3 border rounded-lg"
+                        placeholder="Item description"
+                      />
+                      <input
+                        type="number"
+                        value={item.amount}
+                        onChange={(e) => handleItemChange(index, 'amount', e.target.value)}
+                        className="w-32 p-3 border rounded-lg"
+                        placeholder="Amount"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setItems([...items, { description: '', amount: 0 }])}
+                  className="mt-4 text-primary-600 hover:text-primary-700"
+                >
+                  + Add Item
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Notes</label>
+                <textarea
+                  name="notes"
+                  value={formData.notes}
+                  onChange={handleInputChange}
+                  className="w-full p-3 border rounded-lg"
+                  rows={4}
+                  placeholder="Reson for invoice, additional notes or payment terms..."
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-4">
+              <button
+                type="submit"
+                disabled={isLoading || !address}
+                className="btn-primary flex items-center justify-center min-w-[150px]"
+              >
+                {isLoading ? (
+                  <>
+                    <span className="mr-2">{loadingStatus}</span>
+                    <div className="animate-spin h-5 w-5 border-2 border-white rounded-full border-t-transparent"></div>
+                  </>
+                ) : (
+                  'Create Invoice'
+                )}
+              </button>
+            </div>
+          </form>
         </div>
 
-        <div className="flex justify-end gap-4">
+        <div className="hidden lg:block sticky top-4">
+          <InvoicePreview 
+            formData={formData}
+            items={items}
+            logoPreview={logoPreview}
+            calculateTotal={calculateTotal}
+          />
+        </div>
+
+        <div className="lg:hidden">
           <button
-            type="submit"
-            disabled={isLoading || !address}
-            className="btn-primary flex items-center justify-center min-w-[150px]"
+            type="button"
+            onClick={() => setShowPreview(!showPreview)}
+            className="w-full py-2 px-4 text-sm border rounded-lg hover:bg-gray-50"
           >
-            {isLoading ? (
-              <>
-                <span className="mr-2">{loadingStatus}</span>
-                <div className="animate-spin h-5 w-5 border-2 border-white rounded-full border-t-transparent"></div>
-              </>
-            ) : (
-              'Create Invoice'
-            )}
+            {showPreview ? 'Hide Preview' : 'Show Preview'}
           </button>
+          {showPreview && (
+            <InvoicePreview 
+              formData={formData}
+              items={items}
+              logoPreview={logoPreview}
+              calculateTotal={calculateTotal}
+            />
+          )}
         </div>
-      </form>
+      </div>
 
-      {/* Success Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">

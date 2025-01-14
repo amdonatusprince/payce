@@ -8,6 +8,8 @@ import { useAccount, useWalletClient } from 'wagmi';
 import { parse } from 'papaparse';
 import { createBatchPayment } from '@/app/requests/BatchPayment';
 import { formatTransactionError } from '@/app/requests/utils/errorHandler';
+import { SinglePaymentPreview } from './SinglePaymentPreview';
+import { BatchPaymentPreview } from './BatchPaymentPreview';
 
 interface BatchRecipient {
   address: string;
@@ -21,6 +23,7 @@ export const PaymentForm = () => {
   const [paymentType, setPaymentType] = useState<'single' | 'batch'>('single');
   const [formData, setFormData] = useState({
     payerAddress: '',
+    payerName: '',
     amount: '',
     currency: Object.keys(supportedCurrencies)[0],
     network: supportedChains[0],
@@ -40,6 +43,7 @@ export const PaymentForm = () => {
     transactionHash?: string;
     error?: string;
   } | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({
@@ -51,6 +55,7 @@ export const PaymentForm = () => {
   const resetForm = () => {
     setFormData({
       payerAddress: '',
+      payerName: '',
       amount: '',
       currency: Object.keys(supportedCurrencies)[0],
       network: supportedChains[0],
@@ -108,6 +113,7 @@ export const PaymentForm = () => {
           contentData: {
             transactionType: 'single_forwarder' as const,
             paymentDetails: {
+              payerName: formData.payerName,
               reason: formData.reason,
               dueDate: formData.dueDate,
             },
@@ -270,162 +276,222 @@ export const PaymentForm = () => {
   );
 
   return (
-    <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-sm p-6">
-      {error && (
-        <div className="mb-4 p-4 text-red-700 bg-red-100 rounded-lg">
-          {error}
-        </div>
-      )}
-
-      <div className="flex gap-4 mb-6">
-        <button
-          className={`px-4 py-2 rounded-lg ${
-            paymentType === 'single'
-              ? 'bg-primary-600 text-white'
-              : 'border'
-          }`}
-          onClick={() => setPaymentType('single')}
-        >
-          Single Payment
-        </button>
-        <button
-          className={`px-4 py-2 rounded-lg ${
-            paymentType === 'batch'
-              ? 'bg-primary-600 text-white'
-              : 'border'
-          }`}
-          onClick={() => setPaymentType('batch')}
-        >
-          Batch Payment
-        </button>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {paymentType === 'single' ? (
-          <>
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Payer Address
-              </label>
-              <input
-                type="text"
-                name="payerAddress"
-                value={formData.payerAddress}
-                onChange={handleInputChange}
-                className="w-full p-3 border rounded-lg"
-                placeholder="0x..."
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Amount
-              </label>
-              <input
-                type="number"
-                name="amount"
-                value={formData.amount}
-                onChange={handleInputChange}
-                className="w-full p-3 border rounded-lg"
-                placeholder="0.00"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Reason for Payment
-              </label>
-              <input
-                type="text"
-                name="reason"
-                value={formData.reason}
-                onChange={handleInputChange}
-                className="w-full p-3 border rounded-lg"
-                placeholder="Enter payment reason"
-              />
-            </div>
-          </>
-        ) : (
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Upload Recipients CSV
-            </label>
-            <input
-              type="file"
-              accept=".csv"
-              onChange={handleFileUpload}
-              className="w-full p-3 border rounded-lg"
-            />
-            {batchRecipients.length > 0 && (
-              <div className="mt-2 text-sm text-gray-600">
-                {batchRecipients.length} recipients loaded
-              </div>
-            )}
+    <div className="w-full px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-sm p-4 sm:p-6">
+        {error && (
+          <div className="mb-4 p-4 text-red-700 bg-red-100 rounded-lg text-sm">
+            {error}
           </div>
         )}
 
-        <div>
-          <label className="block text-sm font-medium mb-2">
-            Currency
-          </label>
-          <select 
-            name="currency"
-            value={formData.currency}
-            onChange={handleInputChange}
-            className="w-full p-3 border rounded-lg"
+        {/* Payment Type Selection */}
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-6">
+          <button
+            className={`px-3 py-2 rounded-lg text-sm transition-colors ${
+              paymentType === 'single'
+                ? 'bg-primary-600 text-white'
+                : 'border border-gray-300 hover:bg-gray-50'
+            }`}
+            onClick={() => setPaymentType('single')}
           >
-            {Object.keys(supportedCurrencies).map((currency) => {
-              const [token, network] = currency.split('-');
-              const displayText = network === 'sepolia-sepolia' 
-                ? `${token} - Sepolia`
-                : `${token} - ${network.charAt(0).toUpperCase() + network.slice(1)}`;
-              
-              return (
-                <option key={currency} value={currency} className="truncate">
-                  {displayText}
-                </option>
-              );
-            })}
-          </select>
+            Single Pay
+          </button>
+          <button
+            className={`px-3 py-2 rounded-lg text-sm transition-colors ${
+              paymentType === 'batch'
+                ? 'bg-primary-600 text-white'
+                : 'border border-gray-300 hover:bg-gray-50'
+            }`}
+            onClick={() => setPaymentType('batch')}
+          >
+            Batch Pay
+          </button>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-2">
-            Network
-          </label>
-          <select 
-            name="network"
-            value={formData.network}
-            onChange={handleInputChange}
-            className="w-full p-3 border rounded-lg"
-          >
-            {supportedChains.map((chain) => (
-              <option key={chain} value={chain}>
-                {chain}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <button
-          type="submit"
-          disabled={isLoading || !address}
-          className="w-full py-3 bg-primary-600 text-white rounded-lg disabled:opacity-50 flex items-center justify-center"
-        >
-          {!address ? 'Connect Wallet First' : (
-            <>
-              <span className="mr-2">
-                {isLoading ? loadingStatus : paymentType === 'single' ? 'Receive Payment' : 'Send Batch Payment'}
-              </span>
-              {isLoading && (
-                <div className="animate-spin h-5 w-5 border-2 border-white rounded-full border-t-transparent"></div>
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+          {/* Form Section */}
+          <div className="lg:max-w-xl">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {paymentType === 'single' ? (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5">
+                      Payer Name
+                    </label>
+                    <input
+                      type="text"
+                      name="payerName"
+                      value={formData.payerName}
+                      onChange={handleInputChange}
+                      className="w-full p-2.5 border rounded-lg text-sm"
+                      placeholder="Enter payer name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5">
+                      Payer Address
+                    </label>
+                    <input
+                      type="text"
+                      name="payerAddress"
+                      value={formData.payerAddress}
+                      onChange={handleInputChange}
+                      className="w-full p-2.5 border rounded-lg text-sm"
+                      placeholder="0x..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5">
+                      Amount
+                    </label>
+                    <input
+                      type="number"
+                      name="amount"
+                      value={formData.amount}
+                      onChange={handleInputChange}
+                      className="w-full p-2.5 border rounded-lg text-sm"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5">
+                      Reason for Payment
+                    </label>
+                    <input
+                      type="text"
+                      name="reason"
+                      value={formData.reason}
+                      onChange={handleInputChange}
+                      className="w-full p-2.5 border rounded-lg text-sm"
+                      placeholder="Enter payment reason"
+                    />
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">
+                    Upload Recipients CSV
+                  </label>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={handleFileUpload}
+                    className="w-full p-2.5 border rounded-lg text-sm"
+                  />
+                  {batchRecipients.length > 0 && (
+                    <div className="mt-2 text-sm text-gray-600">
+                      {batchRecipients.length} recipients loaded
+                    </div>
+                  )}
+                </div>
               )}
-            </>
-          )}
-        </button>
-      </form>
 
-      {showModal && (
-        paymentType === 'single' ? <SinglePaymentModal /> : <BatchResultModal />
-      )}
+              <div>
+                <label className="block text-sm font-medium mb-1.5">
+                  Currency
+                </label>
+                <select 
+                  name="currency"
+                  value={formData.currency}
+                  onChange={handleInputChange}
+                  className="w-full p-2.5 border rounded-lg text-sm bg-white"
+                >
+                  {Object.keys(supportedCurrencies).map((currency) => (
+                    <option key={currency} value={currency} className="truncate">
+                      {currency}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1.5">
+                  Network
+                </label>
+                <select 
+                  name="network"
+                  value={formData.network}
+                  onChange={handleInputChange}
+                  className="w-full p-2.5 border rounded-lg text-sm bg-white"
+                >
+                  {supportedChains.map((chain) => (
+                    <option key={chain} value={chain}>
+                      {chain}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading || !address}
+                className="w-full py-2.5 bg-primary-600 text-white rounded-lg disabled:opacity-50 
+                         flex items-center justify-center text-sm sm:text-base transition-colors hover:bg-primary-700"
+              >
+                {!address ? 'Connect Wallet First' : (
+                  <>
+                    <span className="mr-2">
+                      {isLoading ? loadingStatus : paymentType === 'single' ? 'Receive Payment' : 'Send Batch Payment'}
+                    </span>
+                    {isLoading && (
+                      <div className="animate-spin h-4 w-4 border-2 border-white rounded-full border-t-transparent"></div>
+                    )}
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+
+          {/* Desktop Preview */}
+          <div className="hidden lg:block">
+            <div className="sticky top-4">
+              {paymentType === 'single' ? (
+                <SinglePaymentPreview formData={formData} />
+              ) : (
+                <BatchPaymentPreview 
+                  recipients={batchRecipients}
+                  currency={formData.currency}
+                  network={formData.network}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Mobile Preview Toggle & Preview */}
+          <div className="lg:hidden">
+            <button
+              type="button"
+              onClick={() => setShowPreview(!showPreview)}
+              className="w-full py-2.5 px-4 text-sm border rounded-lg hover:bg-gray-50 mb-4"
+            >
+              {showPreview ? 'Hide Preview' : 'Show Preview'}
+            </button>
+            {showPreview && (
+              <div className="mt-4 overflow-x-auto">
+                {paymentType === 'single' ? (
+                  <SinglePaymentPreview formData={formData} />
+                ) : (
+                  <BatchPaymentPreview 
+                    recipients={batchRecipients}
+                    currency={formData.currency}
+                    network={formData.network}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Modals - ensure they're responsive too */}
+        {showModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md mx-auto">
+              {paymentType === 'single' ? <SinglePaymentModal /> : <BatchResultModal />}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }; 

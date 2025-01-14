@@ -48,7 +48,7 @@ export function RecentPaymentTransactions() {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-4"></div>
-        <p className="text-gray-600">Loading recent transactions...</p>
+        <p className="text-gray-600 text-sm">Loading recent transactions...</p>
       </div>
     );
   }
@@ -65,12 +65,13 @@ export function RecentPaymentTransactions() {
   const getStatus = (tx: Types.IRequestData) => getTransactionStatus(tx);
 
   if (recentTransactions.length === 0) {
-    return <p className="text-gray-500 flex justify-center py-12">No recent transactions</p>;
+    return <p className="text-gray-500 flex justify-center py-12 text-sm">No recent transactions</p>;
   }
 
   return (
-    <>
-      <div className="overflow-x-auto">
+    <div className="bg-white rounded-xl shadow-sm w-full max-w-[100vw] overflow-hidden">
+      {/* Desktop View */}
+      <div className="hidden sm:block">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
@@ -130,6 +131,57 @@ export function RecentPaymentTransactions() {
         </table>
       </div>
 
+      {/* Mobile View */}
+      <div className="sm:hidden divide-y divide-gray-200">
+        {recentTransactions.map((tx) => (
+          <div
+            key={tx.requestId}
+            onClick={() => handleRowClick(tx)}
+            className="p-3 hover:bg-gray-50 cursor-pointer"
+          >
+            <div className="flex justify-between items-start mb-2">
+              <div className="text-xs text-gray-500">
+                {format(new Date(tx.timestamp * 1000), 'MMM d, yyyy')}
+              </div>
+              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                getStatus(tx) === 'paid' 
+                  ? 'bg-green-100 text-green-800'
+                  : getStatus(tx) === 'overdue'
+                  ? 'bg-red-100 text-red-800'
+                  : 'bg-yellow-100 text-yellow-800'
+              }`}>
+                {getStatus(tx)}
+              </span>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex justify-between items-baseline gap-2">
+                <div className="text-xs font-medium text-gray-900 truncate flex-1">
+                  To: {`${tx.payee?.value.slice(0, 6)}...${tx.payee?.value.slice(-4)}`}
+                </div>
+                <div className={`text-xs font-medium whitespace-nowrap ${
+                  address?.toLowerCase() === tx.payee?.value.toLowerCase() 
+                    ? 'text-green-600' 
+                    : 'text-red-600'
+                }`}>
+                  {address?.toLowerCase() === tx.payee?.value.toLowerCase() ? '+' : '-'}
+                  {formatAmount(tx.expectedAmount)} {formatCurrency(tx.currency)}
+                </div>
+              </div>
+
+              <div className="flex justify-between text-xs text-gray-500 gap-2">
+                <div className="truncate flex-1">
+                  From: {`${tx.payer?.value.slice(0, 6)}...${tx.payer?.value.slice(-4)}`}
+                </div>
+                <div className="whitespace-nowrap">
+                  #{tx.requestId.slice(0, 6)}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Transaction Modal */}
       {selectedTx && (
         <TransactionModal
@@ -138,6 +190,6 @@ export function RecentPaymentTransactions() {
           transaction={selectedTx}
         />
       )}
-    </>
+    </div>
   );
 }
