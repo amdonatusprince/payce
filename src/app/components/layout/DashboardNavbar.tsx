@@ -12,7 +12,7 @@ export const DashboardNavbar = () => {
     <header className="fixed top-0 left-0 right-0 h-16 bg-white border-b z-50">
       <div className="h-full px-4 flex items-center justify-between">
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/dashboard" className="flex items-center gap-2">
             <Image
               src={Logo}
               alt="Logo"

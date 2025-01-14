@@ -7,10 +7,10 @@ export default function SettingsPage() {
   return (
     <div className="w-full overflow-hidden px-2 sm:px-6">
       <div className="space-y-4 sm:space-y-8">
-        <AccountSettings />
-        <SpendingLimits />
+        {/* <AccountSettings /> */}
+        {/* <SpendingLimits /> */}
         <SecuritySettings />
-        <NotificationSettings />
+        {/* <NotificationSettings /> */}
       </div>
     </div>
   );
