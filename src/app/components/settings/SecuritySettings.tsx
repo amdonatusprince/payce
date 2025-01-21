@@ -81,7 +81,6 @@ export const SecuritySettings = () => {
                 </div> */}
 
                 <div className="pt-4 border-t">
-                    <h3 className="text-lg font-medium mb-4">Connected Wallets</h3>
                     {address ? (
                         // Show connected wallet
                         <div className="flex items-center justify-between p-4 border rounded-lg">

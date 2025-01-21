@@ -25,6 +25,7 @@
     "@requestnetwork/types": "^0.45.1",
     "@requestnetwork/utils": "^0.45.1",
     "@requestnetwork/web3-signature": "^0.8.1",
+    "@solana/wallet-adapter-react": "^0.15.35",
     "@solana/wallet-adapter-wallets": "^0.19.32",
     "@tanstack/react-query": "^5.61.3",
     "@types/papaparse": "^5.3.15",

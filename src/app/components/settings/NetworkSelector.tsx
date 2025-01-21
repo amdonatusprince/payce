@@ -1,119 +1,74 @@
 'use client';
 
-import { useState } from 'react';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
 import Image from 'next/image';
-import { modal } from '@/context/AppKitProvider';
-
-type Network = 'Solana' | 'Base';
-
-interface NetworkOption {
-  id: Network;
-  name: string;
-  icon: string;
-  description: string;
-}
-
-
+import { useAppKitAccount } from "@reown/appkit/react";
 
 export const NetworkSelector = () => {
-  const [selectedNetwork, setSelectedNetwork] = useState<Network>('Solana');
+  const { isConnected } = useAppKitAccount();
 
   return (
-    <div className="space-y-4">
-      {/* Network Selection Tabs - Mashed together on small screens */}
-      <div className="flex rounded-lg border-2 border-gray-200 p-1 space-x-1">
-        {/* Solana Option */}
-        <button
-          onClick={() => setSelectedNetwork('Solana')}
-          className={`relative flex-1 flex items-center justify-center p-2 sm:p-3 rounded-md transition-all ${
-            selectedNetwork === 'Solana'
-              ? 'bg-primary-50 border-2 border-primary-200'
-              : 'hover:bg-gray-50'
-          }`}
-        >
-          <div className="flex items-center space-x-2">
-            <div className="w-5 h-5 sm:w-6 sm:h-6 relative flex-shrink-0">
-              <Image
-                src="/solana_logo.svg"
-                alt="Solana"
-                fill
-                className="object-contain"
-              />
-            </div>
-            <div className="flex flex-col items-start">
-              <span className={`font-medium text-sm sm:text-base ${
-                selectedNetwork === 'Solana' ? 'text-primary-900' : 'text-gray-900'
-              }`}>Solana</span>
-              <span className="hidden sm:block text-xs text-gray-500">High-performance blockchain</span>
+    <div className="space-y-6">
+      <h3 className="text-lg font-medium">Supported Networks</h3>
+      
+      <div className="space-y-4">
+        {/* Network Cards Container - Always Side by Side with better spacing */}
+        <div className="grid grid-cols-2 gap-4 md:gap-6">
+          {/* Solana Network Card */}
+          <div className="bg-white rounded-xl border-2 p-4 md:p-5 w-full">
+            <div className="flex items-start space-x-3 md:space-x-4">
+              <div className="w-8 h-8 md:w-10 md:h-10 relative flex-shrink-0">
+                <Image
+                  src="/solana_logo.svg"
+                  alt="Solana"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-medium text-base md:text-lg whitespace-nowrap">Solana</h4>
+                <p className="hidden lg:block text-sm md:text-base text-gray-500 whitespace-normal">
+                  High-performance blockchain
+                </p>
+              </div>
             </div>
           </div>
-          <div className={`absolute top-2 right-2 w-4 h-4 rounded-full border-2 transition-colors ${
-            selectedNetwork === 'Solana'
-              ? 'border-primary-600 bg-primary-600'
-              : 'border-gray-300 bg-white'
-          }`}>
-            {selectedNetwork === 'Solana' && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-2 h-2 bg-white rounded-full" />
+
+          {/* Base Network Card */}
+          <div className="bg-white rounded-xl border-2 p-4 md:p-5 w-full">
+            <div className="flex items-start space-x-3 md:space-x-4">
+              <div className="w-8 h-8 md:w-10 md:h-10 relative flex-shrink-0">
+                <Image
+                  src="/base_logo.svg"
+                  alt="Base"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-medium text-base md:text-lg whitespace-nowrap">Base</h4>
+                <p className="hidden lg:block text-sm md:text-base text-gray-500 whitespace-normal">
+                  Ethereum L2 solution
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Connect Wallet Section - Full Width */}
+        <div className="bg-white rounded-lg border p-4 md:p-5">
+          <div className="flex flex-col items-center text-center gap-4">
+            {!isConnected && (
+              <div>
+                <p className="font-medium text-base md:text-lg">Connect Wallet</p>
+                <p className="text-sm md:text-base text-gray-600">
+                  Connect your wallet to interact with both networks
+                </p>
               </div>
             )}
-          </div>
-        </button>
-
-        {/* Base Option */}
-        <button
-          onClick={() => setSelectedNetwork('Base')}
-          className={`relative flex-1 flex items-center justify-center p-2 sm:p-3 rounded-md transition-all ${
-            selectedNetwork === 'Base'
-              ? 'bg-primary-50 border-2 border-primary-200'
-              : 'hover:bg-gray-50'
-          }`}
-        >
-          <div className="flex items-center space-x-2">
-            <div className="w-5 h-5 sm:w-6 sm:h-6 relative flex-shrink-0">
-              <Image
-                src="/base_logo.svg"
-                alt="Base"
-                fill
-                className="object-contain"
-              />
-            </div>
-            <div className="flex flex-col items-start">
-              <span className={`font-medium text-sm sm:text-base ${
-                selectedNetwork === 'Base' ? 'text-primary-900' : 'text-gray-900'
-              }`}>Base</span>
-              <span className="hidden sm:block text-xs text-gray-500">Ethereum L2 solution</span>
+            <div className={`rounded-lg px-4 py-2 ${isConnected ? 'bg-purple-50' : ''}`}>
+              <appkit-button />
             </div>
           </div>
-          <div className={`absolute top-2 right-2 w-4 h-4 rounded-full border-2 transition-colors ${
-            selectedNetwork === 'Base'
-              ? 'border-primary-600 bg-primary-600'
-              : 'border-gray-300 bg-white'
-          }`}>
-            {selectedNetwork === 'Base' && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-2 h-2 bg-white rounded-full" />
-              </div>
-            )}
-          </div>
-        </button>
-      </div>
-
-      {/* Connect Wallet Section */}
-      <div className="border rounded-lg bg-white">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-4">
-          <div>
-            {/* <p className="font-medium text-sm sm:text-base">Connect Wallet</p> */}
-            <p className="text-xs sm:text-sm text-gray-600">
-              Connect your {selectedNetwork} wallet to continue
-            </p>
-          </div>
-          {selectedNetwork === 'Base' ? (
-            <appkit-button/>
-          ) : (
-            <appkit-button />
-          )}
         </div>
       </div>
     </div>
