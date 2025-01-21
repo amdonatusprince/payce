@@ -10,6 +10,8 @@ const nextConfig = {
     ];
   },
   webpack: (config: any) => {
+    // Add externals
+    config.externals.push('pino-pretty', 'lokijs', 'encoding');
     
     // Handle source maps properly
     config.module.rules.push({

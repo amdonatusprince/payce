@@ -13,7 +13,7 @@ interface StatementSummaryProps {
 
 export const StatementSummary = ({ dateRange }: StatementSummaryProps) => {
   const { address } = useAccount();
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [summary, setSummary] = useState({
     totalInflow: 0,
     totalOutflow: 0,
@@ -74,7 +74,7 @@ export const StatementSummary = ({ dateRange }: StatementSummaryProps) => {
   }, [address]);
 
   const renderValue = (value: number) => {
-    if (isLoading) {
+    if (isLoading && address) {
       return (
         <span className="inline-block animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-gray-900" />
       );
@@ -94,7 +94,7 @@ export const StatementSummary = ({ dateRange }: StatementSummaryProps) => {
                 <p className="text-sm sm:text-lg font-bold text-green-600">
                   +{renderValue(summary.totalInflow)}
                 </p>
-                <span className="text-[10px] sm:text-xs text-gray-600">ETH</span>
+                <span className="text-[10px] sm:text-xs text-gray-600">USDC</span>
               </div>
             </div>
             <div className="p-1.5 sm:p-2 bg-green-50 rounded-lg">
@@ -112,7 +112,7 @@ export const StatementSummary = ({ dateRange }: StatementSummaryProps) => {
                 <p className="text-sm sm:text-lg font-bold text-red-600">
                   -{renderValue(summary.totalOutflow)}
                 </p>
-                <span className="text-[10px] sm:text-xs text-gray-600">ETH</span>
+                <span className="text-[10px] sm:text-xs text-gray-600">USDC</span>
               </div>
             </div>
             <div className="p-1.5 sm:p-2 bg-red-50 rounded-lg">
@@ -133,7 +133,7 @@ export const StatementSummary = ({ dateRange }: StatementSummaryProps) => {
                   {summary.netChange >= 0 ? '+' : '-'}
                   {Math.abs(summary.netChange).toLocaleString()}
                 </p>
-                <span className="text-[10px] sm:text-xs text-gray-600">ETH</span>
+                <span className="text-[10px] sm:text-xs text-gray-600">USDC</span>
               </div>
             </div>
             <div className={`p-1.5 sm:p-2 rounded-lg ${
@@ -159,7 +159,7 @@ export const StatementSummary = ({ dateRange }: StatementSummaryProps) => {
                   <span className="text-green-600">
                     +{renderValue(summary.pendingInflow)}
                   </span>
-                  <span className="text-[10px] sm:text-xs text-gray-600">ETH</span>
+                  <span className="text-[10px] sm:text-xs text-gray-600">USDC</span>
                 </div>
               </div>
               <div className="flex justify-between text-xs sm:text-sm">
@@ -168,7 +168,7 @@ export const StatementSummary = ({ dateRange }: StatementSummaryProps) => {
                   <span className="text-red-600">
                     -{renderValue(summary.pendingOutflow)}
                   </span>
-                  <span className="text-[10px] sm:text-xs text-gray-600">ETH</span>
+                  <span className="text-[10px] sm:text-xs text-gray-600">USDC</span>
                 </div>
               </div>
             </div>
