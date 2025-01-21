@@ -1,8 +1,8 @@
 'use client';
 
 import { useAccount, useDisconnect } from 'wagmi';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useState } from 'react';
+import { NetworkSelector } from './NetworkSelector';
 
 export const SecuritySettings = () => {
     const { address, connector } = useAccount();
@@ -82,57 +82,44 @@ export const SecuritySettings = () => {
 
                 <div className="pt-4 border-t">
                     <h3 className="text-lg font-medium mb-4">Connected Wallets</h3>
-                    <div className="space-y-4">
-                        {address ? (
-                            // Show connected wallet
-                            <div className="flex items-center justify-between p-4 border rounded-lg">
-                                <div>
-                                    <p className="font-medium">
-                                        {connector?.name || 'Wallet'}
-                                    </p>
-                                    <div className="flex items-center gap-2">
-                                        <p className="text-sm text-gray-600">
-                                            {shortenAddress(address)}
-                                        </p>
-                                        <button
-                                            onClick={copyAddress}
-                                            className="text-primary hover:text-primary/80"
-                                            title="Copy address"
-                                        >
-                                            {copied ? (
-                                                <span className="text-green-600 text-sm">Copied!</span>
-                                            ) : (
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
-                                                    <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
-                                                </svg>
-                                            )}
-                                        </button>
-                                    </div>
-                                </div>
-                                <button 
-                                    onClick={() => disconnect()}
-                                    className="text-red-600 hover:text-red-700"
-                                >
-                                    Disconnect
-                                </button>
-                            </div>
-                        ) : (
-                            // Show connect button when no wallet is connected
-                            <div className="flex items-center justify-between p-4 border rounded-lg">
-                                <div>
-                                    <p className="font-medium">No Wallet Connected</p>
+                    {address ? (
+                        // Show connected wallet
+                        <div className="flex items-center justify-between p-4 border rounded-lg">
+                            <div>
+                                <p className="font-medium">
+                                    {connector?.name || 'Wallet'}
+                                </p>
+                                <div className="flex items-center gap-2">
                                     <p className="text-sm text-gray-600">
-                                        Connect a wallet to continue
+                                        {shortenAddress(address)}
                                     </p>
+                                    <button
+                                        onClick={copyAddress}
+                                        className="text-primary hover:text-primary/80"
+                                        title="Copy address"
+                                    >
+                                        {copied ? (
+                                            <span className="text-green-600 text-sm">Copied!</span>
+                                        ) : (
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                                                <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                                            </svg>
+                                        )}
+                                    </button>
                                 </div>
-                                <ConnectButton 
-                                    chainStatus="none" 
-                                    showBalance={false}
-                                />
                             </div>
-                        )}
-                    </div>
+                            <button 
+                                onClick={() => disconnect()}
+                                className="text-red-600 hover:text-red-700"
+                            >
+                                Disconnect
+                            </button>
+                        </div>
+                    ) : (
+                        // Show NetworkSelector when no wallet is connected
+                        <NetworkSelector />
+                    )}
                 </div>
             </div>
         </div>

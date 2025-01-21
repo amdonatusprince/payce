@@ -8,7 +8,7 @@ import { formatUnits } from 'viem';
 
 export const DashboardStats = () => {
   const { address } = useAccount();
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [stats, setStats] = useState([
     {
       id: 1,
@@ -16,7 +16,7 @@ export const DashboardStats = () => {
       value: '0',
       change: '+0%',
       trend: 'up',
-      currency: 'ETH'
+      currency: 'USDC'
     },
     {
       id: 2,
@@ -24,7 +24,7 @@ export const DashboardStats = () => {
       value: '0',
       change: '-0%',
       trend: 'down',
-      currency: 'ETH'
+      currency: 'USDC'
     },
     {
       id: 3,
@@ -127,7 +127,7 @@ export const DashboardStats = () => {
             <div className="min-w-0 flex-1">
               <p className="text-sm text-gray-600 truncate">{stat.title}</p>
               <div className="mt-1 flex items-baseline gap-1">
-                {isLoading ? (
+                {isLoading && address ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900" />
                 ) : (
                   <>

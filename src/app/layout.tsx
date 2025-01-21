@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
-import { Providers } from "./Providers";
+import { headers } from 'next/headers';
+import AppKitProvider from '@/context/AppKitProvider';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -17,17 +18,20 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
+export default async function RootLayout({
+  children
+}: {
   children: React.ReactNode;
-}>) {
+}) {
+  const headersObj = await headers();
+  const cookies = headersObj.get('cookie');
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={spaceGrotesk.variable} suppressHydrationWarning>
-        <Providers>
-          {children}
-        </Providers>
+        <AppKitProvider cookies={cookies}>
+            {children}
+        </AppKitProvider>
       </body>
     </html>
   );

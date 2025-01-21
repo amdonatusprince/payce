@@ -7,13 +7,14 @@ import { Types } from "@requestnetwork/request-client.js";
 
 export const InvoiceStats = () => {
   const { address } = useAccount();
+  const [isLoading, setIsLoading] = useState(false);
   const [stats, setStats] = useState([
     {
       name: 'Total Outstanding',
       value: '0',
       change: '+0%',
       icon: CurrencyDollarIcon,
-      currency: 'ETH'
+      currency: 'USDC'
     },
     {
       name: 'Pending Invoices',
@@ -26,7 +27,7 @@ export const InvoiceStats = () => {
       value: '0',
       change: '+0%',
       icon: CheckCircleIcon,
-      currency: 'ETH'
+      currency: 'USDC'
     },
     {
       name: 'Overdue',
@@ -35,7 +36,6 @@ export const InvoiceStats = () => {
       icon: ExclamationCircleIcon,
     },
   ]);
-  const [isLoading, setIsLoading] = useState(true);
 
   const getStatus = (invoice: Types.IRequestData) => {
     if (invoice.balance?.balance && BigInt(invoice.balance.balance) > BigInt(0)) {
@@ -55,6 +55,7 @@ export const InvoiceStats = () => {
         let totalOutstanding = 0;
         let pendingCount = 0;
         let totalPaid = 0;
+        let overdueCount = 0;
   
         const invoices = requests.filter(
           (request) =>
@@ -79,6 +80,8 @@ export const InvoiceStats = () => {
   
             if (dueDate > new Date()) {
               pendingCount++;
+            } else {
+              overdueCount++;
             }
           }
         });
@@ -87,27 +90,27 @@ export const InvoiceStats = () => {
           {
             name: 'Total Outstanding',
             value: totalOutstanding.toLocaleString(undefined, { maximumFractionDigits: 4 }),
-            change: '-4.75%', // Placeholder for actual change logic
+            change: '-4.75%',
             icon: CurrencyDollarIcon,
             currency: 'ETH',
           },
           {
             name: 'Pending Invoices',
             value: pendingCount.toString(),
-            change: '+1.15%', // Placeholder for actual change logic
+            change: '+1.15%',
             icon: ClockIcon,
           },
           {
             name: 'Total Paid',
             value: totalPaid.toLocaleString(undefined, { maximumFractionDigits: 4 }),
-            change: '+10.25%', // Placeholder for actual change logic
+            change: '+10.25%',
             icon: CheckCircleIcon,
             currency: 'ETH',
           },
           {
             name: 'Overdue',
-            value: '0', // Placeholder or adjust logic for overdue if needed
-            change: '-2.30%', // Placeholder for actual change logic
+            value: overdueCount.toString(),
+            change: '-2.30%',
             icon: ExclamationCircleIcon,
           },
         ]);
@@ -136,7 +139,7 @@ export const InvoiceStats = () => {
                 {stat.name}
               </p>
               <div className="flex items-baseline space-x-2">
-                {isLoading ? (
+                {isLoading && address ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900" />
                 ) : (
                   <>
