@@ -1,17 +1,17 @@
 'use client';
 import { format } from 'date-fns';
 import { useEffect, useState } from 'react';
-import { useAccount } from 'wagmi';
 import { Types } from "@requestnetwork/request-client.js";
 import { retrieveRequest } from '@/app/requests/RetrieveRequest';
 import { formatUnits } from 'viem';
 import { TransactionModal } from '../transactions/TransactionModal';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAppKitAccount } from "@reown/appkit/react";
 
 export const RecentInflowTransactions = () => {
   const router = useRouter();
-  const { address } = useAccount();
+  const { address, isConnected } = useAppKitAccount();
   const [transactions, setTransactions] = useState<Types.IRequestData[]>([]);
   const [selectedTx, setSelectedTx] = useState<Types.IRequestData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -29,7 +29,7 @@ export const RecentInflowTransactions = () => {
     const fetchTransactions = async () => {
       setIsLoading(true);
       try {
-        if (address) {
+        if (isConnected && address) {
           const allRequests: Types.IRequestData[] = await retrieveRequest(address);
           // Filter only completed inflow transactions (where user is payee and payment is complete)
           const filteredRequests = allRequests.filter(request => {
@@ -51,7 +51,7 @@ export const RecentInflowTransactions = () => {
     };
 
     fetchTransactions();
-  }, [address]);
+  }, [address, isConnected]);
 
   return (
     <div className="bg-white rounded-xl shadow-sm">
@@ -67,7 +67,7 @@ export const RecentInflowTransactions = () => {
         </div>
       </div>
 
-      {!address ? (
+      {!isConnected ? (
         <div className="flex flex-col items-center justify-center py-8 sm:py-12">
           <p className="text-gray-500 mb-4 text-center px-4">Please connect your wallet to view recent inflows</p>
           <Link 

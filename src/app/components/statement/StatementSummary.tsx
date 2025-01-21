@@ -1,8 +1,8 @@
 import { ArrowTrendingUpIcon, ArrowTrendingDownIcon } from '@heroicons/react/24/outline';
-import { useAccount } from 'wagmi';
 import { useState, useEffect } from 'react';
 import { retrieveRequest } from '@/app/requests/RetrieveRequest';
 import { formatUnits } from 'viem';
+import { useAppKitAccount } from "@reown/appkit/react";
 
 interface StatementSummaryProps {
   dateRange: {
@@ -12,7 +12,7 @@ interface StatementSummaryProps {
 }
 
 export const StatementSummary = ({ dateRange }: StatementSummaryProps) => {
-  const { address } = useAccount();
+  const { address, isConnected } = useAppKitAccount();
   const [isLoading, setIsLoading] = useState(false);
   const [summary, setSummary] = useState({
     totalInflow: 0,
@@ -24,7 +24,7 @@ export const StatementSummary = ({ dateRange }: StatementSummaryProps) => {
 
   useEffect(() => {
     const calculateSummary = async () => {
-      if (!address) return;
+      if (!isConnected || !address) return;
       setIsLoading(true);
       try {
         const requests = await retrieveRequest(address);
@@ -71,10 +71,10 @@ export const StatementSummary = ({ dateRange }: StatementSummaryProps) => {
     };
 
     calculateSummary();
-  }, [address]);
+  }, [address, isConnected]);
 
   const renderValue = (value: number) => {
-    if (isLoading && address) {
+    if (isLoading && isConnected) {
       return (
         <span className="inline-block animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-gray-900" />
       );

@@ -1,14 +1,15 @@
 import { format } from 'date-fns';
 import { useEffect, useState } from 'react';
-import { useAccount } from 'wagmi';
 import { Types } from "@requestnetwork/request-client.js";
 import { retrieveRequest } from '@/app/requests/RetrieveRequest';
 import { formatUnits } from 'viem';
 import { TransactionModal } from '../transactions/TransactionModal';
 import { getTransactionStatus } from '@/app/requests/utils/transactionStatus';
+import { useAppKitAccount } from "@reown/appkit/react";
+import Link from 'next/link';
 
 export const RecentInvoiceTransactions = () => {
-  const { address } = useAccount();
+  const { address, isConnected } = useAppKitAccount();
   const [invoices, setInvoices] = useState<Types.IRequestData[]>([]);
   const [selectedTx, setSelectedTx] = useState<Types.IRequestData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -18,7 +19,7 @@ export const RecentInvoiceTransactions = () => {
     const fetchInvoices = async () => {
       setIsLoading(true);
       try {
-        if (address) {
+        if (isConnected && address) {
           const allRequests = await retrieveRequest(address);
           const filteredRequests = allRequests
             .filter(request => request.contentData?.transactionType === 'invoice')
@@ -31,14 +32,13 @@ export const RecentInvoiceTransactions = () => {
     };
 
     fetchInvoices();
-  }, [address]);
+  }, [address, isConnected]);
 
   const formatAmount = (amount: string | number, decimals: number = 18) => {
     return parseFloat(formatUnits(BigInt(amount.toString()), decimals));
   };
 
   const getStatus = (tx: Types.IRequestData) => getTransactionStatus(tx);
-
 
   const formatCurrency = (currency: string) => {
     return currency.split('-')[0];
@@ -49,6 +49,23 @@ export const RecentInvoiceTransactions = () => {
       <div className="flex flex-col items-center justify-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-4"></div>
         <p className="text-gray-600 text-sm">Loading recent invoices...</p>
+      </div>
+    );
+  }
+
+  if (!isConnected) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <p className="text-gray-600 text-sm">Connect your wallet to view invoices</p>
+        <Link 
+            href="/dashboard/settings"
+            className="text-primary-600 hover:text-primary-700 font-medium flex items-center gap-2"
+          >
+            Go to Settings
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+            </svg>
+          </Link>
       </div>
     );
   }

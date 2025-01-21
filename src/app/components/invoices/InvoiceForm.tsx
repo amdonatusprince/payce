@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { supportedCurrencies, supportedChains } from '@/lib/constants';
 import { createRequest, REQUEST_STATUS } from '@/app/requests/CreateRequest';
-import { useAccount, useWalletClient } from 'wagmi';
+import { useWalletClient } from 'wagmi';
 import { Types } from "@requestnetwork/request-client.js";
 import { CurrencyTypes } from "@requestnetwork/types";
 import { formatTransactionError } from '@/app/requests/utils/errorHandler';
 import { InvoicePreview } from './InvoicePreview';
+import { useAppKitAccount } from "@reown/appkit/react";
 
 export const InvoiceForm = () => {
-  const { address } = useAccount();
+  const { address, isConnected } = useAppKitAccount();
   const { data: walletClient } = useWalletClient();
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState('');
@@ -74,7 +75,7 @@ export const InvoiceForm = () => {
     setError(null);
 
     try {
-      if (!address || !walletClient) {
+      if (!isConnected || !address || !walletClient) {
         throw new Error('Please connect your wallet first');
       }
 
@@ -362,14 +363,16 @@ export const InvoiceForm = () => {
             <div className="flex justify-end gap-4">
               <button
                 type="submit"
-                disabled={isLoading || !address}
-                className="btn-primary flex items-center justify-center min-w-[150px]"
+                disabled={isLoading || !isConnected}
+                className="btn-primary flex items-center justify-center min-w-[150px] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <>
                     <span className="mr-2">{loadingStatus}</span>
                     <div className="animate-spin h-5 w-5 border-2 border-white rounded-full border-t-transparent"></div>
                   </>
+                ) : !isConnected ? (
+                  'Connect Wallet First'
                 ) : (
                   'Create Invoice'
                 )}

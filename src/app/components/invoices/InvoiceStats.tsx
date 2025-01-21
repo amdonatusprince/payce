@@ -1,12 +1,12 @@
 import { CurrencyDollarIcon, ClockIcon, CheckCircleIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline';
-import { useAccount } from 'wagmi';
 import { useState, useEffect } from 'react';
 import { retrieveRequest } from '@/app/requests/RetrieveRequest';
 import { formatUnits } from 'viem';
 import { Types } from "@requestnetwork/request-client.js";
+import { useAppKitAccount } from "@reown/appkit/react";
 
 export const InvoiceStats = () => {
-  const { address } = useAccount();
+  const { address, isConnected } = useAppKitAccount();
   const [isLoading, setIsLoading] = useState(false);
   const [stats, setStats] = useState([
     {
@@ -47,7 +47,7 @@ export const InvoiceStats = () => {
 
   useEffect(() => {
     const calculateStats = async () => {
-      if (!address) return;
+      if (!isConnected || !address) return;
       setIsLoading(true);
   
       try {
@@ -92,7 +92,7 @@ export const InvoiceStats = () => {
             value: totalOutstanding.toLocaleString(undefined, { maximumFractionDigits: 4 }),
             change: '-4.75%',
             icon: CurrencyDollarIcon,
-            currency: 'ETH',
+            currency: 'USDC',
           },
           {
             name: 'Pending Invoices',
@@ -105,7 +105,7 @@ export const InvoiceStats = () => {
             value: totalPaid.toLocaleString(undefined, { maximumFractionDigits: 4 }),
             change: '+10.25%',
             icon: CheckCircleIcon,
-            currency: 'ETH',
+            currency: 'USDC',
           },
           {
             name: 'Overdue',
@@ -120,7 +120,7 @@ export const InvoiceStats = () => {
     };
   
     calculateStats();
-  }, [address]);
+  }, [address, isConnected]);
   
 
   return (
@@ -139,7 +139,7 @@ export const InvoiceStats = () => {
                 {stat.name}
               </p>
               <div className="flex items-baseline space-x-2">
-                {isLoading && address ? (
+                {isLoading && isConnected ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900" />
                 ) : (
                   <>

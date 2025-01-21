@@ -4,12 +4,13 @@ import { supportedCurrencies, supportedChains } from '../../../lib/constants';
 import { createPaymentRequest } from '../../requests/PaymentForwarder';
 import { Types } from "@requestnetwork/request-client.js";
 import { CurrencyTypes } from "@requestnetwork/types";
-import { useAccount, useWalletClient } from 'wagmi';
 import { parse } from 'papaparse';
 import { createBatchPayment } from '@/app/requests/BatchPayment';
 import { formatTransactionError } from '@/app/requests/utils/errorHandler';
 import { SinglePaymentPreview } from './SinglePaymentPreview';
 import { BatchPaymentPreview } from './BatchPaymentPreview';
+import { useAppKitAccount } from "@reown/appkit/react";
+import { useWalletClient } from 'wagmi';
 
 interface BatchRecipient {
   address: string;
@@ -18,7 +19,7 @@ interface BatchRecipient {
 }
 
 export const PaymentForm = () => {
-  const { address } = useAccount();
+  const { address, isConnected } = useAppKitAccount();
   const { data: walletClient } = useWalletClient();
   const [paymentType, setPaymentType] = useState<'single' | 'batch'>('single');
   const [formData, setFormData] = useState({
@@ -92,7 +93,7 @@ export const PaymentForm = () => {
     setShowModal(false);
 
     try {
-      if (!address || !walletClient) {
+      if (!isConnected || !address || !walletClient) {
         throw new Error('Please connect your wallet first');
       }
 
@@ -109,7 +110,6 @@ export const PaymentForm = () => {
           recipientAddress: address,
           reason: formData.reason,
           dueDate: formData.dueDate,
-          walletClient,
           contentData: {
             transactionType: 'single_forwarder' as const,
             paymentDetails: {
@@ -122,7 +122,8 @@ export const PaymentForm = () => {
               builderId: "payce-finance",
               createdBy: address,
             }
-          }
+          },
+          walletClient,
         };
 
         const result = await createPaymentRequest({ params });
@@ -138,7 +139,6 @@ export const PaymentForm = () => {
         }
 
         const params = {
-          walletClient,
           payerAddress: address,
           currency: {
             type: Types.RequestLogic.CURRENCY.ETH as const,
@@ -148,6 +148,7 @@ export const PaymentForm = () => {
           },
           recipients: batchRecipients,
           dueDate: formData.dueDate,
+          walletClient,
           onStatusChange: (status: string) => {
             setLoadingStatus(status);
             if (status.includes('4/4')) {

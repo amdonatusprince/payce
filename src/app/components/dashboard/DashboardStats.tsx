@@ -1,13 +1,12 @@
 "use client";
 import { ArrowTrendingDownIcon, ArrowTrendingUpIcon, ClockIcon } from '@heroicons/react/24/outline';
-import { useAccount } from 'wagmi';
 import { useState, useEffect } from 'react';
 import { retrieveRequest } from '@/app/requests/RetrieveRequest';
 import { formatUnits } from 'viem';
-
+import { useAppKitAccount } from "@reown/appkit/react";
 
 export const DashboardStats = () => {
-  const { address } = useAccount();
+  const { address, isConnected } = useAppKitAccount();
   const [isLoading, setIsLoading] = useState(false);
   const [stats, setStats] = useState([
     {
@@ -44,7 +43,7 @@ export const DashboardStats = () => {
 
   useEffect(() => {
     const calculateStats = async () => {
-      if (!address) return;
+      if (!isConnected || !address) return;
       setIsLoading(true);
       
       try {
@@ -83,7 +82,7 @@ export const DashboardStats = () => {
             value: inflow.toLocaleString(),
             change: '+12.5%', 
             trend: 'up',
-            currency: 'ETH'
+            currency: 'USDC'
           },
           {
             id: 2,
@@ -91,7 +90,7 @@ export const DashboardStats = () => {
             value: outflow.toLocaleString(),
             change: '-4.2%',
             trend: 'down',
-            currency: 'ETH'
+            currency: 'USDC'
           },
           {
             id: 3,
@@ -114,7 +113,7 @@ export const DashboardStats = () => {
     };
 
     calculateStats();
-  }, [address]);
+  }, [address, isConnected]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -127,7 +126,7 @@ export const DashboardStats = () => {
             <div className="min-w-0 flex-1">
               <p className="text-sm text-gray-600 truncate">{stat.title}</p>
               <div className="mt-1 flex items-baseline gap-1">
-                {isLoading && address ? (
+                {isLoading && isConnected ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900" />
                 ) : (
                   <>
