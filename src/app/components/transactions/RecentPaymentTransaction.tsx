@@ -1,15 +1,16 @@
+'use client';
+import { format } from 'date-fns';
 import { useEffect, useState } from 'react';
-import { useAccount } from 'wagmi';
 import { Types } from "@requestnetwork/request-client.js";
 import { retrieveRequest } from '@/app/requests/RetrieveRequest';
-import { format } from 'date-fns';
 import { formatUnits } from 'viem';
-import { TransactionModal } from './TransactionModal';
-import { getTransactionStatus } from '@/app/requests/utils/transactionStatus';
+import { TransactionModal } from '../transactions/TransactionModal';
+import Link from 'next/link';
+import { useAppKitAccount } from "@reown/appkit/react";
 
-export function RecentPaymentTransactions() {
-  const { address } = useAccount();
-  const [recentTransactions, setRecentTransactions] = useState<Types.IRequestData[]>([]);
+export const RecentPaymentTransactions = () => {
+  const { address, isConnected } = useAppKitAccount();
+  const [transactions, setTransactions] = useState<Types.IRequestData[]>([]);
   const [selectedTx, setSelectedTx] = useState<Types.IRequestData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -18,169 +19,100 @@ export function RecentPaymentTransactions() {
     return currency.split('-')[0];
   };
 
+  const formatAmount = (amount: string | number, decimals: number = 18) => {
+    return parseFloat(formatUnits(BigInt(amount.toString()), decimals));
+  };
+
   useEffect(() => {
-    const fetchRecentTransactions = async () => {
+    const fetchTransactions = async () => {
       setIsLoading(true);
       try {
-        if (address) {
-          const allRequests = await retrieveRequest(address);
-          
-          // Filter only payment transactions
-          const filteredRequests = allRequests.filter(request => 
-            request.contentData?.transactionType === 'single_forwarder' || 
-            request.contentData?.transactionType === 'batch_payment'
-          );
+        if (isConnected && address) {
+          const allRequests: Types.IRequestData[] = await retrieveRequest(address);
+          // Filter only completed outflow transactions (where user is payer and payment is complete)
+          const filteredRequests = allRequests.filter(request => {
+            const isPayer = request.payer?.value.toLowerCase() === address.toLowerCase();
+            const isPaid = request.balance?.balance && 
+              BigInt(request.balance.balance) > 0;
+            
+            return isPayer && isPaid; // Only show completed payments
+          });
 
           const recent = filteredRequests
             .sort((a, b) => b.timestamp - a.timestamp)
             .slice(0, 5);
-          setRecentTransactions(recent);
+          setTransactions(recent);
         }
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchRecentTransactions();
-  }, [address]);
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-4"></div>
-        <p className="text-gray-600 text-sm">Loading recent transactions...</p>
-      </div>
-    );
-  }
-
-  const formatAmount = (amount: number | string, decimals: number = 18) => {
-    return parseFloat(formatUnits(BigInt(amount.toString()), decimals));
-  };
-
-  const handleRowClick = (tx: Types.IRequestData) => {
-    setSelectedTx(tx);
-    setIsModalOpen(true);
-  };
-
-  const getStatus = (tx: Types.IRequestData) => getTransactionStatus(tx);
-
-  if (recentTransactions.length === 0) {
-    return <p className="text-gray-500 flex justify-center py-12 text-sm">No recent transactions</p>;
-  }
+    fetchTransactions();
+  }, [address, isConnected]);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm w-full max-w-[100vw] overflow-hidden">
-      {/* Desktop View */}
-      <div className="hidden sm:block">
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Txn ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payer</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Recipient</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Currency</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {recentTransactions.map((tx) => (
-              <tr 
-                key={tx.requestId} 
-                onClick={() => handleRowClick(tx)}
-                className="hover:bg-gray-50 cursor-pointer"
-              >
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {format(new Date(tx.timestamp * 1000), 'MMM d, yyyy')}
-                </td>
-                <td className="px-6 py-4 text-sm">
-                  <div className="flex items-center">
-                    {`${tx.requestId.slice(0, 6)}...${tx.requestId.slice(-4)}`}
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
-                  {`${tx.payer?.value.slice(0, 6)}...${tx.payer?.value.slice(-4)}`}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
-                  {`${tx.payee?.value.slice(0, 6)}...${tx.payee?.value.slice(-4)}`}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
-                  {formatCurrency(tx.currency)}
-                </td>
-                <td className={`px-6 py-4 text-sm text-right whitespace-nowrap ${
-                  address?.toLowerCase() === tx.payee?.value.toLowerCase() ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {address?.toLowerCase() === tx.payee?.value.toLowerCase() ? '+' : '-'}
-                  {formatAmount(tx.expectedAmount, 18)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    getStatus(tx) === 'paid' 
-                      ? 'bg-green-100 text-green-800'
-                      : getStatus(tx) === 'overdue'
-                      ? 'bg-red-100 text-red-800'
-                      : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {getStatus(tx)}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Mobile View */}
-      <div className="sm:hidden divide-y divide-gray-200">
-        {recentTransactions.map((tx) => (
-          <div
-            key={tx.requestId}
-            onClick={() => handleRowClick(tx)}
-            className="p-3 hover:bg-gray-50 cursor-pointer"
+    <div className="bg-white rounded-xl shadow-sm">
+      {!isConnected ? (
+        <div className="flex flex-col items-center justify-center py-8 sm:py-12">
+          <p className="text-gray-500 mb-4 text-center px-4">Please connect your wallet to view recent outflows</p>
+          <Link 
+            href="/dashboard/settings"
+            className="text-primary-600 hover:text-primary-700 font-medium flex items-center gap-2"
           >
-            <div className="flex justify-between items-start mb-2">
-              <div className="text-xs text-gray-500">
-                {format(new Date(tx.timestamp * 1000), 'MMM d, yyyy')}
+            Go to Settings
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+            </svg>
+          </Link>
+        </div>
+      ) : isLoading ? (
+        <div className="flex flex-col items-center justify-center py-8 sm:py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-4"></div>
+          <p className="text-gray-600">Loading recent outflows...</p>
+        </div>
+      ) : transactions.length === 0 ? (
+        <div className="flex justify-center py-8 sm:py-12">
+          <p className="text-gray-500">No recent outflows</p>
+        </div>
+      ) : (
+        <div className="divide-y">
+          {transactions.map((tx) => (
+            <div 
+              key={tx.requestId} 
+              className="p-3 sm:p-4 hover:bg-gray-50 cursor-pointer"
+              onClick={() => {
+                setSelectedTx(tx);
+                setIsModalOpen(true);
+              }}
+            >
+              <div className="flex items-center justify-between space-x-2">
+                <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                    ↑
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm sm:text-base truncate">
+                      {tx.contentData?.reason || 'No reason provided'}
+                    </p>
+                    <p className="text-xs sm:text-sm text-gray-600 truncate">
+                      To: {`${tx.payee?.value.slice(0, 6)}...${tx.payee?.value.slice(-4)}`}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <p className="font-semibold text-red-600 text-sm sm:text-base">
+                    -{formatAmount(tx.expectedAmount)} {formatCurrency(tx.currency)}
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-600">
+                    {format(new Date(tx.timestamp * 1000), 'MMM d, yyyy')}
+                  </p>
+                </div>
               </div>
-              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                getStatus(tx) === 'paid' 
-                  ? 'bg-green-100 text-green-800'
-                  : getStatus(tx) === 'overdue'
-                  ? 'bg-red-100 text-red-800'
-                  : 'bg-yellow-100 text-yellow-800'
-              }`}>
-                {getStatus(tx)}
-              </span>
             </div>
-
-            <div className="space-y-1">
-              <div className="flex justify-between items-baseline gap-2">
-                <div className="text-xs font-medium text-gray-900 truncate flex-1">
-                  To: {`${tx.payee?.value.slice(0, 6)}...${tx.payee?.value.slice(-4)}`}
-                </div>
-                <div className={`text-xs font-medium whitespace-nowrap ${
-                  address?.toLowerCase() === tx.payee?.value.toLowerCase() 
-                    ? 'text-green-600' 
-                    : 'text-red-600'
-                }`}>
-                  {address?.toLowerCase() === tx.payee?.value.toLowerCase() ? '+' : '-'}
-                  {formatAmount(tx.expectedAmount)} {formatCurrency(tx.currency)}
-                </div>
-              </div>
-
-              <div className="flex justify-between text-xs text-gray-500 gap-2">
-                <div className="truncate flex-1">
-                  From: {`${tx.payer?.value.slice(0, 6)}...${tx.payer?.value.slice(-4)}`}
-                </div>
-                <div className="whitespace-nowrap">
-                  #{tx.requestId.slice(0, 6)}
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Transaction Modal */}
       {selectedTx && (
@@ -192,4 +124,4 @@ export function RecentPaymentTransactions() {
       )}
     </div>
   );
-}
+};
