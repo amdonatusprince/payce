@@ -1,4 +1,5 @@
 import { format } from 'date-fns';
+import Image from 'next/image';
 
 interface InvoicePreviewProps {
   formData: {
@@ -13,17 +14,15 @@ interface InvoicePreviewProps {
     network: string;
     dueDate: string;
     notes: string;
-    invoiceReference: string;
   };
   items: Array<{
     description: string;
     amount: number;
   }>;
-  logoPreview: string | null;
   calculateTotal: () => string;
 }
 
-export const InvoicePreview = ({ formData, items, logoPreview, calculateTotal }: InvoicePreviewProps) => {
+export const InvoicePreview = ({ formData, items, calculateTotal }: InvoicePreviewProps) => {
   const total = calculateTotal();
   
   const formatWalletAddress = (address: string) => {
@@ -35,23 +34,19 @@ export const InvoicePreview = ({ formData, items, logoPreview, calculateTotal }:
     <div className="bg-white border rounded-lg p-4 sm:p-6 max-w-full">
       {/* Header with Logo and Invoice Info */}
       <div className="flex justify-between items-start mb-8">
-        <div className="flex-1 min-w-0">
-          {logoPreview ? (
-            <img 
-              src={logoPreview} 
-              alt="Business Logo" 
-              className="max-h-16 object-contain"
-            />
-          ) : (
-            <div className="h-16 w-32 bg-gray-100 flex items-center justify-center rounded">
-              <span className="text-gray-400 text-sm">Logo</span>
-            </div>
-          )}
+        <div>
+        <Image
+            src="/payceLogo.png"
+            alt="Payce Logo"
+            width={50}
+            height={40}
+            className="mb-2"
+          />
         </div>
-        <div className="text-right ml-4">
-          <h3 className="text-xl font-bold text-gray-900">INVOICE</h3>
+        <div className="text-right">
+            <h3 className="text-xl font-bold text-gray-900">INVOICE</h3>
           <p className="text-sm text-gray-600 mt-1">
-            Ref: {formData.invoiceReference || 'INV-0000'}
+            {format(new Date(), 'MMM dd, yyyy')}
           </p>
         </div>
       </div>
@@ -138,11 +133,16 @@ export const InvoicePreview = ({ formData, items, logoPreview, calculateTotal }:
 
       {/* Notes */}
       {formData.notes && (
-        <div>
+        <div className="mb-8">
           <h4 className="font-medium text-sm text-gray-700 mb-2">Notes:</h4>
           <p className="text-sm text-gray-600 whitespace-pre-line">{formData.notes}</p>
         </div>
       )}
+
+      {/* Powered by Payce */}
+      <div className="text-center text-sm text-gray-500 mt-8">
+        Powered by Payce Finance
+      </div>
     </div>
   );
 };

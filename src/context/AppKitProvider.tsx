@@ -4,7 +4,7 @@ import { wagmiAdapter, projectId } from '@/config/wagmi';
 import { solanaAdapter } from '@/config/solana';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createAppKit } from '@reown/appkit/react';
-import { base, solana, sepolia } from '@reown/appkit/networks';
+import { base, solana, sepolia, solanaDevnet } from '@reown/appkit/networks';
 import React, { type ReactNode } from 'react';
 import { cookieToInitialState, WagmiProvider, type Config } from 'wagmi';
 
@@ -24,12 +24,12 @@ const metadata = {
 export const modal = createAppKit({
   adapters: [wagmiAdapter, solanaAdapter],
   projectId,
-  networks: [solana, base, sepolia],
-  defaultNetwork: solana,
+  networks: [solana, base, sepolia, solanaDevnet],
+  defaultNetwork: solanaDevnet,
   metadata: metadata,
   features: {
     analytics: true
-  }
+  },
 });
 
 function AppKitProvider({ children, cookies }: { children: ReactNode; cookies: string | null }) {

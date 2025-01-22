@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import { supportedCurrencies, supportedChains } from '@/lib/constants';
 import { createRequest, REQUEST_STATUS } from '@/app/requests/CreateRequest';
+import { createInvoiceRequest } from '@/app/requests/solana/createInvoiceRequest';
 import { useWalletClient } from 'wagmi';
 import { Types } from "@requestnetwork/request-client.js";
 import { CurrencyTypes } from "@requestnetwork/types";
 import { formatTransactionError } from '@/app/requests/utils/errorHandler';
 import { InvoicePreview } from './InvoicePreview';
-import { useAppKitAccount } from "@reown/appkit/react";
+import { useAppKitAccount, useAppKitNetwork } from "@reown/appkit/react";
+import { CheckIcon } from "@heroicons/react/24/outline";
 
 export const InvoiceForm = () => {
   const { address, isConnected } = useAppKitAccount();
+  const { caipNetwork } = useAppKitNetwork();
   const { data: walletClient } = useWalletClient();
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState('');
@@ -17,6 +20,7 @@ export const InvoiceForm = () => {
   const [error, setError] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const network = caipNetwork?.name
   
   const initialFormData = {
     // Business Details
@@ -35,9 +39,7 @@ export const InvoiceForm = () => {
     currency: Object.keys(supportedCurrencies)[0],
     dueDate: '',
     notes: '',
-    invoiceReference: '',
-    businessLogo: null as File | null,
-    network: supportedChains[0],
+    network: caipNetwork?.name || supportedChains[0],
   };
 
   const initialItems = [{ description: '', amount: 0 }];
@@ -73,6 +75,7 @@ export const InvoiceForm = () => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+    setShowModal(false);
 
     try {
       if (!isConnected || !address || !walletClient) {
@@ -83,17 +86,19 @@ export const InvoiceForm = () => {
         throw new Error('Please fill in all required fields');
       }
 
+      const isSolanaNetwork = formData.network.toLowerCase().includes('solana');
+      
       const params = {
         walletClient,
         payerAddress: formData.clientWallet,
         expectedAmount: calculateTotal(),
         currency: {
           type: Types.RequestLogic.CURRENCY.ETH as const,
-          value: 'ETH',
-          network: 'sepolia' as CurrencyTypes.ChainName,
+          value: formData.currency,
+          network: formData.network.toLowerCase() as CurrencyTypes.ChainName,
           decimals: supportedCurrencies[formData.currency as keyof typeof supportedCurrencies].decimals,
         },
-        recipientAddress: address,
+        payeeAddress: address,
         reason: formData.notes,
         dueDate: formData.dueDate,
         contentData: {
@@ -128,14 +133,27 @@ export const InvoiceForm = () => {
         },
       };
 
-      const result = await createRequest(params);
-      setShowModal(true);
-      resetForm();
+      let result;
+      if (isSolanaNetwork) {
+        result = await createInvoiceRequest(params);
+        console.log('IPFS Upload Result:', result);
+        if (result?.requestId) {
+          setShowModal(true);
+          resetForm();
+        }
+      } else {
+        result = await createRequest({
+          ...params,
+          recipientAddress: params.payeeAddress
+        });
+      }
+
     } catch (error) {
+      console.error('Form submission error:', error);
       setError(formatTransactionError(error));
-      console.error('Full error:', error);
     } finally {
       setIsLoading(false);
+      setLoadingStatus('');
     }
   };
 
@@ -143,17 +161,7 @@ export const InvoiceForm = () => {
     setShowModal(false);
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData({ ...formData, businessLogo: file });
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+
 
   return (
     <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-sm p-4 sm:p-6">
@@ -166,29 +174,6 @@ export const InvoiceForm = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">Invoice Reference</label>
-                <input
-                  type="text"
-                  name="invoiceReference"
-                  value={formData.invoiceReference}
-                  onChange={handleInputChange}
-                  placeholder="INV-0000"
-                  className="w-full p-3 border rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Business Logo</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoUpload}
-                  className="w-full p-3 border rounded-lg"
-                />
-              </div>
-            </div>
-
             <div className="border-b pb-6">
               <h3 className="text-lg font-medium mb-4">Business Details</h3>
               <div className="grid grid-cols-2 gap-6">
@@ -306,12 +291,11 @@ export const InvoiceForm = () => {
                     value={formData.network}
                     onChange={handleInputChange}
                     className="w-full p-3 border rounded-lg"
+                    disabled={true}
                   >
-                    {supportedChains.map((chain) => (
-                      <option key={chain} value={chain}>
-                        {chain}
-                      </option>
-                    ))}
+                    <option value={network || ''}>
+                      {network || 'Please connect wallet'}
+                    </option>
                   </select>
                 </div>
               </div>
@@ -385,7 +369,6 @@ export const InvoiceForm = () => {
           <InvoicePreview 
             formData={formData}
             items={items}
-            logoPreview={logoPreview}
             calculateTotal={calculateTotal}
           />
         </div>
@@ -402,7 +385,6 @@ export const InvoiceForm = () => {
             <InvoicePreview 
               formData={formData}
               items={items}
-              logoPreview={logoPreview}
               calculateTotal={calculateTotal}
             />
           )}
@@ -410,32 +392,35 @@ export const InvoiceForm = () => {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium">Invoice Created Successfully</h3>
-              <button
-                onClick={handleCloseModal}
-                className="text-gray-400 hover:text-gray-500"
-              >
-                <span className="sr-only">Close</span>
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="mb-4">
-              <p className="text-sm text-gray-600">
-                The invoice has been successfully created and sent to payer's wallet address.
-              </p>
-            </div>
-            <div className="flex justify-end">
-              <button
-                onClick={handleCloseModal}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-              >
-                Close
-              </button>
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity">
+          <div className="fixed inset-0 z-10 overflow-y-auto">
+            <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+              <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-sm sm:p-6">
+                <div>
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+                    <CheckIcon className="h-6 w-6 text-green-600" aria-hidden="true" />
+                  </div>
+                  <div className="mt-3 text-center sm:mt-5">
+                    <h3 className="text-base font-semibold leading-6 text-gray-900">
+                      Invoice Created Successfully
+                    </h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500">
+                        Your invoice has been uploaded to IPFS successfully. The payer will be notified shortly.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-5 sm:mt-6">
+                  <button
+                    type="button"
+                    className="inline-flex w-full justify-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500"
+                    onClick={() => setShowModal(false)}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
