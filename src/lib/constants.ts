@@ -1,3 +1,6 @@
+import { PublicKey } from "@solana/web3.js";
+
+export const PAYMENT_PROXY_PROGRAM_ID = new PublicKey("URMK39HrCR54mssQa2tub7596Y3M5VcLVLEgX1wZe56");
 export const supportedCurrencies = {
   'ETH': { decimals: 18 },
   'USDT': { decimals: 6 },

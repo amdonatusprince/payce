@@ -9,6 +9,9 @@ import { formatTransactionError } from '@/app/requests/utils/errorHandler';
 import { InvoicePreview } from './InvoicePreview';
 import { useAppKitAccount, useAppKitNetwork } from "@reown/appkit/react";
 import { CheckIcon } from "@heroicons/react/24/outline";
+import { useAppKitProvider } from '@reown/appkit/react'
+import { useAppKitConnection, type Provider } from '@reown/appkit-adapter-solana/react'
+
 
 export const InvoiceForm = () => {
   const { address, isConnected } = useAppKitAccount();
@@ -19,9 +22,13 @@ export const InvoiceForm = () => {
   const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const network = caipNetwork?.name
-  
+  const { connection } = useAppKitConnection()
+  const { walletProvider } = useAppKitProvider<Provider>('solana')
+  const [result, setResult] = useState<{ ipfsUrl: string; explorerUrl: string } | null>(null);
+
+
+
   const initialFormData = {
     // Business Details
     businessName: '',
@@ -135,12 +142,14 @@ export const InvoiceForm = () => {
 
       let result;
       if (isSolanaNetwork) {
-        result = await createInvoiceRequest(params);
-        console.log('IPFS Upload Result:', result);
-        if (result?.requestId) {
-          setShowModal(true);
-          resetForm();
-        }
+        const response = await createInvoiceRequest({
+          ...params,
+          connection,
+          walletProvider
+        });
+        setResult(response);
+        setShowModal(true);
+        resetForm();
       } else {
         result = await createRequest({
           ...params,
@@ -394,8 +403,8 @@ export const InvoiceForm = () => {
       {showModal && (
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity">
           <div className="fixed inset-0 z-10 overflow-y-auto">
-            <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-              <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-sm sm:p-6">
+            <div className="flex min-h-full items-center justify-center p-4">
+              <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
                 <div>
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
                     <CheckIcon className="h-6 w-6 text-green-600" aria-hidden="true" />
@@ -404,9 +413,33 @@ export const InvoiceForm = () => {
                     <h3 className="text-base font-semibold leading-6 text-gray-900">
                       Invoice Created Successfully
                     </h3>
-                    <div className="mt-2">
+                    <div className="mt-4 space-y-4">
+                      <div className="flex items-center justify-center space-x-2">
+                        <a
+                          href={result?.ipfsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
+                          </svg>
+                          View on IPFS
+                        </a>
+                        <a
+                          href={result?.explorerUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M7 8h10M7 12h4m1 8-4-4H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-3l-4 4Z" />
+                          </svg>
+                          View on Explorer
+                        </a>
+                      </div>
                       <p className="text-sm text-gray-500">
-                        Your invoice has been uploaded to IPFS successfully. The payer will be notified shortly.
+                        Your invoice has been created and uploaded successfully. Click the links above to view the details.
                       </p>
                     </div>
                   </div>
@@ -414,7 +447,7 @@ export const InvoiceForm = () => {
                 <div className="mt-5 sm:mt-6">
                   <button
                     type="button"
-                    className="inline-flex w-full justify-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500"
+                    className="inline-flex w-full justify-center rounded-md bg-gray-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-500"
                     onClick={() => setShowModal(false)}
                   >
                     Close

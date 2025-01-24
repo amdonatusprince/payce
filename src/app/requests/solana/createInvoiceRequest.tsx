@@ -1,5 +1,12 @@
 "use client";
 
+import { PublicKey, SystemProgram } from '@solana/web3.js';
+import { PAYMENT_PROXY_PROGRAM_ID } from '@/lib/constants';
+import { Program, AnchorProvider, setProvider } from '@project-serum/anchor';
+import { BN } from '@project-serum/anchor';
+import {IDL} from '@/utils/payment_proxy';
+
+
 interface InvoiceData {
   version: string;
   timestamp: number;
@@ -87,25 +94,78 @@ export const createInvoiceRequest = async (params: any) => {
 
     const { cid, url } = await response.json();
 
-    return {
-      requestId: cid,
-      currency: params.currency.value,
-      expectedAmount: params.expectedAmount,
-      payee: {
-        type: 'solana',
-        value: params.payeeAddress
-      },
-      payer: {
-        type: 'solana',
-        value: params.payerAddress
-      },
-      timestamp: Date.now(),
-      ipfsUrl: url,
-      network: params.currency.network,
-      contentData: params.contentData
-    };
+    // Register the request on Solana
+    const { connection } = params;
+    const { walletProvider } = params;
+
+    // Convert amount to USDC decimals (6)
+    const amountUsdc = Math.floor(Number(params.expectedAmount) * 1_000_000);
+
+    // Create the provider
+    const provider = new AnchorProvider(
+      connection,
+      walletProvider,
+      {
+        commitment: 'confirmed',
+        preflightCommitment: 'confirmed',
+      }
+    );
+    setProvider(provider);
+
+    // Initialize the program with the provider
+    const program = new Program(IDL, PAYMENT_PROXY_PROGRAM_ID, provider);
+
+    const [requestTracker] = PublicKey.findProgramAddressSync(
+      [Buffer.from("request"), Buffer.from(cid.slice(0, 32), 'utf-8')],
+      program.programId
+    );
+
+    try {
+      const latestBlockhash = await connection.getLatestBlockhash('confirmed');
+      
+      let tx = await program.methods
+        .registerRequest(
+          cid.slice(0, 32),
+          new BN(amountUsdc),
+          new PublicKey(params.payeeAddress)
+        )
+        .accounts({
+          creator: walletProvider.publicKey,
+          requestTracker,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+
+      // Get the transaction signature from recent signatures
+      const signatures = await connection.getSignaturesForAddress(requestTracker);
+      const signature = signatures[0]?.signature || tx;
+
+      // Return success response even if we get "already processed" error
+      return {
+        ipfsUrl: url,
+        explorerUrl: params.currency.network.toLowerCase().includes('devnet') 
+          ? `https://explorer.solana.com/tx/${signature}?cluster=devnet`
+          : `https://explorer.solana.com/tx/${signature}`
+      };
+    } catch (error) {
+      // If transaction was actually successful but threw "already processed"
+      if (error instanceof Error && error.message.includes('already been processed')) {
+        const signatures = await connection.getSignaturesForAddress(requestTracker);
+        const signature = signatures[0]?.signature;
+        
+        if (signature) {
+          return {
+            ipfsUrl: url,
+            explorerUrl: params.currency.network.toLowerCase().includes('devnet') 
+              ? `https://explorer.solana.com/tx/${signature}?cluster=devnet`
+              : `https://explorer.solana.com/tx/${signature}`
+          };
+        }
+      }
+      
+      throw error;
+    }  
   } catch (error) {
-    console.error('Error creating Solana invoice request:', error);
-    throw error;
-  }
-};
+      throw error;
+    }
+  };
