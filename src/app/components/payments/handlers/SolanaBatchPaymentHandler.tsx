@@ -1,4 +1,4 @@
-import { Connection, PublicKey } from '@solana/web3.js';
+import { Connection } from '@solana/web3.js';
 import { Provider } from '@reown/appkit-adapter-solana/react';
 import { sendSolanaPayment } from '@/app/requests/solana/sendSolanaPayment';
 
@@ -57,7 +57,6 @@ export const handleSolanaBatchPayment = async ({
         status: 'success',
         signature,
       });
-      console.log(results, "results")
 
       onStatusUpdate(
         `${recipientIndex}/${totalRecipients}: ✓ ${recipient.amount} USDC → ${displayAddress}`

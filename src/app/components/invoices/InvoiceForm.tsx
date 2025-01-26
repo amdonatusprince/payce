@@ -9,8 +9,8 @@ import { formatTransactionError } from '@/app/requests/utils/errorHandler';
 import { InvoicePreview } from './InvoicePreview';
 import { useAppKitAccount, useAppKitNetwork } from "@reown/appkit/react";
 import { CheckIcon } from "@heroicons/react/24/outline";
-import { useAppKitProvider } from '@reown/appkit/react'
-import { useAppKitConnection, type Provider } from '@reown/appkit-adapter-solana/react'
+import { useAppKitProvider } from '@reown/appkit/react';
+import { useAppKitConnection, type Provider } from '@reown/appkit-adapter-solana/react';
 
 
 export const InvoiceForm = () => {
@@ -25,7 +25,7 @@ export const InvoiceForm = () => {
   const network = caipNetwork?.name
   const { connection } = useAppKitConnection()
   const { walletProvider } = useAppKitProvider<Provider>('solana')
-  const [result, setResult] = useState<{ ipfsUrl: string; explorerUrl: string } | null>(null);
+  const [result, setResult] = useState<{ explorerUrl?: string } | null>(null);
 
 
 
@@ -285,6 +285,7 @@ export const InvoiceForm = () => {
                     value={formData.currency}
                     onChange={handleInputChange}
                     className="w-full p-3 border rounded-lg"
+                    disabled={true}
                   >
                     {Object.keys(supportedCurrencies).map((currency) => (
                       <option key={currency} value={currency} className="truncate">
@@ -413,35 +414,16 @@ export const InvoiceForm = () => {
                     <h3 className="text-base font-semibold leading-6 text-gray-900">
                       Invoice Created Successfully
                     </h3>
-                    <div className="mt-4 space-y-4">
-                      <div className="flex items-center justify-center space-x-2">
-                        <a
-                          href={result?.ipfsUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
-                          </svg>
-                          View on IPFS
-                        </a>
-                        <a
-                          href={result?.explorerUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M7 8h10M7 12h4m1 8-4-4H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-3l-4 4Z" />
-                          </svg>
-                          View on Explorer
-                        </a>
-                      </div>
-                      <p className="text-sm text-gray-500">
-                        Your invoice has been created and uploaded successfully. Click the links above to view the details.
-                      </p>
-                    </div>
+                    {/* <div className="mt-4">
+                      <a
+                        href={result?.explorerUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+                      >
+                        View on Explorer
+                      </a>
+                    </div> */}
                   </div>
                 </div>
                 <div className="mt-5 sm:mt-6">

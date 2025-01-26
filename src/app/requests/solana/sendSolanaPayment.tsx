@@ -80,19 +80,37 @@ export const sendSolanaPayment = async (params: SendPaymentParams) => {
       const paymentDetails = {
         recipient: recipientAddress,
         amount: amount,
+        sender: walletProvider.publicKey.toString(),
         recipientName: recipientName,
+        currency: 'USDC',
+        network: network,
+        transactionType: 'normal',
         reason: reason,
         timestamp: Date.now(),
         explorerUrl: network.toLowerCase().includes('devnet') 
-        ? `https://explorer.solana.com/tx/${tx}?cluster=devnet`
-        : `https://explorer.solana.com/tx/${tx}`,
+          ? `https://explorer.solana.com/tx/${tx}?cluster=devnet`
+          : `https://explorer.solana.com/tx/${tx}`,
       };
 
-      console.log("Payment completed:", paymentDetails);
+      // Store transaction in database
+      const response = await fetch('/api/transactions/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(paymentDetails)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to store transaction');
+      }
+
+      const { transactionId } = await response.json();
 
       return {
         paymentDetails: {
           ...paymentDetails,
+          transactionId,
           status: 'paid' as const
         }
       };
