@@ -25,12 +25,6 @@ export const sendSolanaPayment = async (params: SendPaymentParams) => {
   const { connection, walletProvider, recipientAddress, amount, recipientName, reason, network } = params;
   
   try {
-    console.log("Initiating payment:", {
-      recipient: recipientAddress,
-      amount: amount,
-      recipientName: recipientName,
-      reason: reason
-    });
 
     // USDC mint on mainnet/devnet
     const usdcMint = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
@@ -38,19 +32,15 @@ export const sendSolanaPayment = async (params: SendPaymentParams) => {
     // Get mint decimals
     const mintInfo = await getMint(connection, usdcMint);
     const decimals = mintInfo.decimals;
-    console.log("USDC decimals:", decimals);
 
     // Calculate amount with decimals
     const transferAmount = Math.floor(Number(amount) * Math.pow(10, decimals));
-    
-    console.log("Getting source (payer) token account...");
     const sourceAccount = await getOrCreateAssociatedTokenAccount(
       connection,
       walletProvider,
       usdcMint,
       walletProvider.publicKey
     );
-    console.log("Source Account:", sourceAccount.address.toString());
 
     // Check balance
     const balance = await getAccount(connection, sourceAccount.address);
@@ -58,16 +48,12 @@ export const sendSolanaPayment = async (params: SendPaymentParams) => {
       throw new Error(`Insufficient USDC balance. Required: ${amount} USDC`);
     }
 
-    console.log("Getting destination (recipient) token account...");
     const destinationAccount = await getOrCreateAssociatedTokenAccount(
       connection,
       walletProvider,
       usdcMint,
       new PublicKey(recipientAddress)
     );
-    console.log("Destination Account:", destinationAccount.address.toString());
-
-    console.log("Creating transfer transaction...");
     const transaction = new Transaction();
     
     // Set fee payer before adding instructions
@@ -105,9 +91,6 @@ export const sendSolanaPayment = async (params: SendPaymentParams) => {
       console.log("Payment completed:", paymentDetails);
 
       return {
-        explorerUrl: network.toLowerCase().includes('devnet') 
-          ? `https://explorer.solana.com/tx/${tx}?cluster=devnet`
-          : `https://explorer.solana.com/tx/${tx}`,
         paymentDetails: {
           ...paymentDetails,
           status: 'paid' as const
