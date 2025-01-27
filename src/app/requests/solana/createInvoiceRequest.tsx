@@ -23,6 +23,12 @@ interface InvoiceData {
     clientDetails: {
       name: string;
       address: string;
+      email: string;
+    };
+    businessDetails: {
+      name: string;
+      address: string;
+      email: string;
     };
     paymentDetails: {
       reason?: string;
@@ -56,6 +62,12 @@ export const createInvoiceRequest = async (params: any) => {
         clientDetails: {
           name: params.contentData.clientDetails.name,
           address: params.contentData.clientDetails.address,
+          email: params.contentData.clientDetails.email,
+        },
+        businessDetails: {
+          name: params.contentData.businessDetails.name,
+          address: params.contentData.businessDetails.address,
+          email: params.contentData.businessDetails.email,
         },
         paymentDetails: {
           reason: params.reason,

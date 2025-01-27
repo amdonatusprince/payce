@@ -25,7 +25,13 @@ export interface InvoiceData {
     clientDetails: {
       name: string;
       address: string;
+      email: string
     };
+    business:{
+      name: string
+      address: string
+      email: string
+    }
     paymentDetails: {
       reason?: string;
       dueDate?: string;

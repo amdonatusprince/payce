@@ -1,69 +1,26 @@
-import { Product } from "@/types";
 
-export const dummyProducts: Product[] = [
+const { MongoClient, ServerApiVersion } = require('mongodb');
+const uri = "mongodb+srv://donatusprince:<db_password>@payce-cluster.hpjzf.mongodb.net/?retryWrites=true&w=majority&appName=payce-cluster";
 
-  {
-    id: '1',
-    title: 'Pro Social Media Mastery',
-    description: 'Complete guide to growing your brand on social platforms',
-    price: 79,
-    currency: 'USDC',
-    type: 'digital',
-    image: '/assets/profiles/Jane-writes.jpg',
-    rating: 4.8,
-    seller: {
-      name: 'Jane Writes',
-      avatar: '/assets/profiles/Jane-writes.jpg',
-      rating: 4.7,
-      address: '0x03E15BD74ee8AdBef0C58584fc6d2b859Cd053E6'
-    }
-  },
+// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  }
+});
 
-  {
-    id: '3',
-    title: 'Custom Logo Design Service',
-    description: 'Professional branding and logo design with unlimited revisions',
-    price: 149,
-    currency: 'USDC',
-    type: 'service',
-    image: '/assets/logo-design.jpg',
-    rating: 4.7,
-    seller: {
-      name: 'Creative Minds Studio',
-      avatar: '/assets/digitaldreams.jpg',
-      rating: 4.8,
-      address: '0x03E15BD74ee8AdBef0C58584fc6d2b859Cd053E6'
-    }
-  },
-  {
-    id: '2',
-    title: 'Handcrafted Wooden Watch',
-    description: 'Unique handmade timepiece crafted from sustainable bamboo',
-    price: 199,
-    currency: 'USDC',
-    type: 'physical',
-    image: '/assets/watch.png',
-    rating: 4.9,
-    seller: {
-      name: 'EcoWood Crafts',
-      avatar: '/assets/watch.jpg',
-      rating: 4.9,
-      address: '0x03E15BD74ee8AdBef0C58584fc6d2b859Cd053E6'
-    }
-  },
-  // Add more dummy products...
-];
-
-export const dummyTransactions = [
-  {
-    id: '1',
-    type: 'incoming',
-    amount: 1500,
-    currency: 'USDC',
-    description: 'Payment for design work',
-    date: new Date(),
-    status: 'completed',
-    from: '0x1234...5678'
-  },
-  // Add more dummy transactions...
-]; 
+async function run() {
+  try {
+    // Connect the client to the server	(optional starting in v4.7)
+    await client.connect();
+    // Send a ping to confirm a successful connection
+    await client.db("admin").command({ ping: 1 });
+    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+  } finally {
+    // Ensures that the client will close when you finish/error
+    await client.close();
+  }
+}
+run().catch(console.dir);

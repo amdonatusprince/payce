@@ -1,47 +1,97 @@
 import { format } from 'date-fns';
-import { useEffect, useState } from 'react';
-import { Types } from "@requestnetwork/request-client.js";
-import { retrieveRequest } from '@/app/requests/RetrieveRequest';
-import { formatUnits } from 'viem';
+import { useState, useEffect } from 'react';
+import { useAppKitAccount, useAppKitNetwork } from "@reown/appkit/react";
 import { TransactionModal } from '../transactions/TransactionModal';
-import { getTransactionStatus } from '@/app/requests/utils/transactionStatus';
-import { useAppKitAccount } from "@reown/appkit/react";
+import { useSolanaInvoices } from '@/app/hooks/useSolanaInvoices';
+import { useRequestInvoices } from '@/app/hooks/useRequestInvoices';
 import Link from 'next/link';
+import { formatUnits } from 'viem';
+import { Types } from "@requestnetwork/request-client.js";
+import { SolanaInvoice } from '@/app/hooks/useSolanaInvoices';
 
 export const RecentInvoiceTransactions = () => {
-  const { address, isConnected } = useAppKitAccount();
-  const [invoices, setInvoices] = useState<Types.IRequestData[]>([]);
-  const [selectedTx, setSelectedTx] = useState<Types.IRequestData | null>(null);
+  const { isConnected } = useAppKitAccount();
+  const { caipNetwork } = useAppKitNetwork();
+  const [page, setPage] = useState(1);
+  const [selectedTx, setSelectedTx] = useState<Types.IRequestData | SolanaInvoice | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
+  // Check if network is Solana (either mainnet or devnet)
+  const isSolanaNetwork = caipNetwork?.name.toLowerCase().includes('solana');
+
+  // Only fetch Solana invoices if on Solana network
+  const {
+    invoices: solanaInvoices,
+    isLoading: isSolanaLoading,
+    totalPages: solanaTotalPages
+  } = useSolanaInvoices(isSolanaNetwork ? page : 0);
+
+  // Only fetch Request invoices if not on Solana network
+  const {
+    invoices: requestInvoices,
+    isLoading: isRequestLoading,
+    totalPages: requestTotalPages
+  } = useRequestInvoices(!isSolanaNetwork ? page : 0);
+
+  // Use appropriate data based on network
+  const invoices = isSolanaNetwork ? solanaInvoices : requestInvoices;
+  const isLoading = isSolanaNetwork ? isSolanaLoading : isRequestLoading;
+  const totalPages = isSolanaNetwork ? solanaTotalPages : requestTotalPages;
+
+  // Reset page when network changes
   useEffect(() => {
-    const fetchInvoices = async () => {
-      setIsLoading(true);
-      try {
-        if (isConnected && address) {
-          const allRequests = await retrieveRequest(address);
-          const filteredRequests = allRequests
-            .filter(request => request.contentData?.transactionType === 'invoice')
-            .sort((a, b) => b.timestamp - a.timestamp);
-          setInvoices(filteredRequests);
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchInvoices();
-  }, [address, isConnected]);
+    setPage(1);
+  }, [caipNetwork]);
 
   const formatAmount = (amount: string | number, decimals: number = 18) => {
     return parseFloat(formatUnits(BigInt(amount.toString()), decimals));
   };
 
-  const getStatus = (tx: Types.IRequestData) => getTransactionStatus(tx);
+  const getStatus = (invoice: any) => {
+    // If it's a Solana invoice
+    if ('status' in invoice) {
+      return invoice.status.toLowerCase();
+    }
+    
+    // If it's a Request invoice (keep existing logic)
+    const currentTime = Math.floor(Date.now() / 1000);
+    const dueDate = new Date(invoice.contentData?.dueDate).getTime() / 1000;
+    
+    if (invoice.state === 'paid') return 'paid';
+    if (currentTime > dueDate) return 'overdue';
+    return 'pending';
+  };
 
   const formatCurrency = (currency: string) => {
     return currency.split('-')[0];
+  };
+
+  const getInvoiceAmount = (invoice: SolanaInvoice | Types.IRequestData) => {
+    if ('expectedAmount' in invoice) {
+      return `${formatAmount(invoice.expectedAmount)} ${formatCurrency(invoice.currency)}`;
+    }
+    return `${invoice.invoice.amount} ${invoice.invoice.currency}`;
+  };
+
+  const getInvoiceDetails = (invoice: SolanaInvoice | Types.IRequestData) => {
+    if ('invoice' in invoice) {
+      return {
+        id: invoice.transactionId,
+        date: format(new Date(invoice.timestamp), 'MMM d, yyyy'),
+        clientName: invoice.contentData.clientDetails.name,
+        amount: `${invoice.invoice.amount} ${invoice.invoice.currency}`,
+        status: invoice.status.toLowerCase(),
+        dueDate: invoice.invoice.dueDate
+      };
+    }
+    return {
+      id: invoice.requestId,
+      date: format(new Date(invoice.timestamp * 1000), 'MMM d, yyyy'),
+      clientName: invoice.contentData?.clientDetails?.name || 'Unknown Client',
+      amount: `${formatAmount(invoice.expectedAmount)} ${formatCurrency(invoice.currency)}`,
+      status: getStatus(invoice),
+      dueDate: invoice.contentData?.dueDate
+    };
   };
 
   if (isLoading) {
@@ -74,8 +124,31 @@ export const RecentInvoiceTransactions = () => {
     return <p className="text-gray-500 flex justify-center py-12 text-sm">No recent invoices</p>;
   }
 
+  // Add pagination controls
+  const Pagination = () => (
+    <div className="flex justify-center gap-2 mt-4">
+      <button
+        onClick={() => setPage(p => Math.max(1, p - 1))}
+        disabled={page === 1}
+        className="px-3 py-1 rounded bg-gray-100 disabled:opacity-50"
+      >
+        Previous
+      </button>
+      <span className="px-3 py-1">
+        Page {page} of {totalPages}
+      </span>
+      <button
+        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+        disabled={page === totalPages}
+        className="px-3 py-1 rounded bg-gray-100 disabled:opacity-50"
+      >
+        Next
+      </button>
+    </div>
+  );
+
   return (
-    <div className="bg-white rounded-xl shadow-sm w-full max-w-[100vw] overflow-hidden">
+    <>
       {/* Desktop View */}
       <div className="hidden sm:block">
         <table className="w-full">
@@ -90,101 +163,107 @@ export const RecentInvoiceTransactions = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {invoices.map((invoice) => (
-              <tr 
-                key={invoice.requestId}
-                onClick={() => {
-                  setSelectedTx(invoice);
-                  setIsModalOpen(true);
-                }}
-                className="hover:bg-gray-50 cursor-pointer"
-              >
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {format(new Date(invoice.timestamp * 1000), 'MMM d, yyyy')}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {`${invoice.requestId.slice(0, 6)}...${invoice.requestId.slice(-4)}`}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {invoice.contentData?.clientDetails?.name || 'Unknown Client'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {formatAmount(invoice.expectedAmount)} {formatCurrency(invoice.currency)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    getStatus(invoice) === 'paid' 
-                      ? 'bg-green-100 text-green-800'
-                      : getStatus(invoice) === 'overdue'
-                      ? 'bg-red-100 text-red-800'
-                      : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {getStatus(invoice)}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {invoice.contentData?.dueDate 
-                    ? format(new Date(invoice.contentData.dueDate), 'MMM d, yyyy')
-                    : 'No due date'}
-                </td>
-              </tr>
-            ))}
+            {invoices.map((invoice) => {
+              const details = getInvoiceDetails(invoice);
+              return (
+                <tr 
+                  key={details.id}
+                  onClick={() => {
+                    setSelectedTx(invoice);
+                    setIsModalOpen(true);
+                  }}
+                  className="hover:bg-gray-50 cursor-pointer"
+                >
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {details.date}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {`${details.id.slice(0, 6)}...${details.id.slice(-4)}`}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {details.clientName}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {details.amount}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      details.status === 'paid' 
+                        ? 'bg-green-100 text-green-800'
+                        : details.status === 'overdue'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {details.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {details.dueDate 
+                      ? format(new Date(details.dueDate), 'MMM d, yyyy')
+                      : 'No due date'}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
       {/* Mobile View */}
       <div className="sm:hidden divide-y divide-gray-200">
-        {invoices.map((invoice) => (
-          <div
-            key={invoice.requestId}
-            onClick={() => {
-              setSelectedTx(invoice);
-              setIsModalOpen(true);
-            }}
-            className="p-3 hover:bg-gray-50 cursor-pointer"
-          >
-            <div className="flex justify-between items-start mb-2">
-              <div className="text-xs text-gray-500">
-                {format(new Date(invoice.timestamp * 1000), 'MMM d, yyyy')}
-              </div>
-              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                getStatus(invoice) === 'paid' 
-                  ? 'bg-green-100 text-green-800'
-                  : getStatus(invoice) === 'overdue'
-                  ? 'bg-red-100 text-red-800'
-                  : 'bg-yellow-100 text-yellow-800'
-              }`}>
-                {getStatus(invoice)}
-              </span>
-            </div>
-
-            <div className="space-y-1">
-              <div className="flex justify-between items-baseline gap-2">
-                <div className="text-xs font-medium text-gray-900 truncate flex-1">
-                  {invoice.contentData?.clientDetails?.name || 'Unknown Client'}
+        {invoices.map((invoice) => {
+          const details = getInvoiceDetails(invoice);
+          return (
+            <div
+              key={details.id}
+              onClick={() => {
+                setSelectedTx(invoice);
+                setIsModalOpen(true);
+              }}
+              className="p-3 hover:bg-gray-50 cursor-pointer"
+            >
+              <div className="flex justify-between items-start mb-2">
+                <div className="text-xs text-gray-500">
+                  {details.date}
                 </div>
-                <div className="text-xs font-medium whitespace-nowrap">
-                  {formatAmount(invoice.expectedAmount)} {formatCurrency(invoice.currency)}
-                </div>
+                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                  details.status === 'paid' 
+                    ? 'bg-green-100 text-green-800'
+                    : details.status === 'overdue'
+                    ? 'bg-red-100 text-red-800'
+                    : 'bg-yellow-100 text-yellow-800'
+                }`}>
+                  {details.status}
+                </span>
               </div>
 
-              <div className="flex justify-between text-xs text-gray-500 gap-2">
-                <div className="truncate flex-1">
-                  Due: {invoice.contentData?.dueDate 
-                    ? format(new Date(invoice.contentData.dueDate), 'MMM d, yyyy')
-                    : 'No due date'}
+              <div className="space-y-1">
+                <div className="flex justify-between items-baseline gap-2">
+                  <div className="text-xs font-medium text-gray-900 truncate flex-1">
+                    {details.clientName}
+                  </div>
+                  <div className="text-xs font-medium whitespace-nowrap">
+                    {details.amount}
+                  </div>
                 </div>
-                <div className="whitespace-nowrap">
-                  #{invoice.requestId.slice(0, 6)}
+
+                <div className="flex justify-between text-xs text-gray-500 gap-2">
+                  <div className="truncate flex-1">
+                    Due: {details.dueDate 
+                      ? format(new Date(details.dueDate), 'MMM d, yyyy')
+                      : 'No due date'}
+                  </div>
+                  <div className="whitespace-nowrap">
+                    {details.id.slice(0, 6)}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* Transaction Modal */}
+      <Pagination />
       {selectedTx && (
         <TransactionModal
           isOpen={isModalOpen}
@@ -192,6 +271,6 @@ export const RecentInvoiceTransactions = () => {
           transaction={selectedTx}
         />
       )}
-    </div>
+    </>
   );
 };

@@ -7,15 +7,52 @@ import { formatUnits } from 'viem';
 import { TransactionModal } from '../transactions/TransactionModal';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAppKitAccount } from "@reown/appkit/react";
+import { useAppKitAccount, useAppKitNetwork } from "@reown/appkit/react";
+import { useInflowTransactions } from '@/app/hooks/useInflowTransactions';
 
 export const RecentInflowTransactions = () => {
   const router = useRouter();
   const { address, isConnected } = useAppKitAccount();
-  const [transactions, setTransactions] = useState<Types.IRequestData[]>([]);
-  const [selectedTx, setSelectedTx] = useState<Types.IRequestData | null>(null);
+  const { caipNetwork } = useAppKitNetwork();
+  const isSolanaNetwork = caipNetwork?.name?.toLowerCase().includes('solana');
+
+  // Solana transactions
+  const { transactions: solanaTransactions, isLoading: isSolanaLoading } = useInflowTransactions();
+
+  // Request Network transactions
+  const [requestTransactions, setRequestTransactions] = useState<Types.IRequestData[]>([]);
+  const [isRequestLoading, setIsRequestLoading] = useState(true);
+  const [selectedTx, setSelectedTx] = useState<Types.IRequestData | any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch Request Network transactions
+  useEffect(() => {
+    const fetchRequestTransactions = async () => {
+      if (!isSolanaNetwork && isConnected && address) {
+        setIsRequestLoading(true);
+        try {
+          const allRequests: Types.IRequestData[] = await retrieveRequest(address);
+          const filteredRequests = allRequests.filter(request => {
+            const isPayee = request.payee?.value.toLowerCase() === address.toLowerCase();
+            const isPaid = request.balance?.balance && BigInt(request.balance.balance) > 0;
+            return isPayee && isPaid;
+          });
+
+          const recent = filteredRequests
+            .sort((a, b) => b.timestamp - a.timestamp)
+            .slice(0, 5);
+          setRequestTransactions(recent);
+        } finally {
+          setIsRequestLoading(false);
+        }
+      }
+    };
+
+    fetchRequestTransactions();
+  }, [address, isConnected, isSolanaNetwork]);
+
+  const isLoading = isSolanaNetwork ? isSolanaLoading : isRequestLoading;
+  const transactions = isSolanaNetwork ? solanaTransactions : requestTransactions;
 
   const formatCurrency = (currency: string) => {
     return currency.split('-')[0];
@@ -24,34 +61,6 @@ export const RecentInflowTransactions = () => {
   const formatAmount = (amount: string | number, decimals: number = 18) => {
     return parseFloat(formatUnits(BigInt(amount.toString()), decimals));
   };
-
-  useEffect(() => {
-    const fetchTransactions = async () => {
-      setIsLoading(true);
-      try {
-        if (isConnected && address) {
-          const allRequests: Types.IRequestData[] = await retrieveRequest(address);
-          // Filter only completed inflow transactions (where user is payee and payment is complete)
-          const filteredRequests = allRequests.filter(request => {
-            const isPayee = request.payee?.value.toLowerCase() === address.toLowerCase();
-            const isPaid = request.balance?.balance && 
-              BigInt(request.balance.balance) > 0;
-            
-            return isPayee && isPaid; // Only show completed payments
-          });
-
-          const recent = filteredRequests
-            .sort((a, b) => b.timestamp - a.timestamp)
-            .slice(0, 5);
-          setTransactions(recent);
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchTransactions();
-  }, [address, isConnected]);
 
   return (
     <div className="bg-white rounded-xl shadow-sm">
@@ -91,9 +100,9 @@ export const RecentInflowTransactions = () => {
         </div>
       ) : (
         <div className="divide-y">
-          {transactions.map((tx) => (
+          {transactions.map((tx: any) => (
             <div 
-              key={tx.requestId} 
+              key={isSolanaNetwork ? tx.transactionId : tx.requestId} 
               className="p-3 sm:p-4 hover:bg-gray-50 cursor-pointer"
               onClick={() => {
                 setSelectedTx(tx);
@@ -107,19 +116,23 @@ export const RecentInflowTransactions = () => {
                   </div>
                   <div className="min-w-0">
                     <p className="font-medium text-sm sm:text-base truncate">
-                      {tx.contentData?.reason || 'No reason provided'}
+                      {isSolanaNetwork ? tx.reason : tx.contentData?.reason || 'No reason provided'}
                     </p>
                     <p className="text-xs sm:text-sm text-gray-600 truncate">
-                      From: {`${tx.payer?.value.slice(0, 6)}...${tx.payer?.value.slice(-4)}`}
+                      From: {isSolanaNetwork 
+                        ? `${tx.sender.slice(0, 6)}...${tx.sender.slice(-4)}`
+                        : `${tx.payer?.value.slice(0, 6)}...${tx.payer?.value.slice(-4)}`}
                     </p>
                   </div>
                 </div>
                 <div className="text-right flex-shrink-0">
                   <p className="font-semibold text-green-600 text-sm sm:text-base">
-                    +{formatAmount(tx.expectedAmount)} {formatCurrency(tx.currency)}
+                    +{isSolanaNetwork 
+                      ? `${tx.amount} ${tx.currency}`
+                      : `${formatAmount(tx.expectedAmount)} ${formatCurrency(tx.currency)}`}
                   </p>
                   <p className="text-xs sm:text-sm text-gray-600">
-                    {format(new Date(tx.timestamp * 1000), 'MMM d, yyyy')}
+                    {format(new Date(isSolanaNetwork ? tx.timestamp : tx.timestamp * 1000), 'MMM d, yyyy')}
                   </p>
                 </div>
               </div>
