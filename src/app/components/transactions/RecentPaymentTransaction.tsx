@@ -112,7 +112,7 @@ export const RecentPaymentTransactions = () => {
             const details = getTransactionDetails(tx);
             return (
               <div 
-                key={details.id} 
+                key={details.id}
                 className="p-3 sm:p-4 hover:bg-gray-50 cursor-pointer"
                 onClick={() => {
                   setSelectedTx(tx);
