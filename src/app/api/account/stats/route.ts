@@ -18,8 +18,8 @@ export async function GET(req: NextRequest) {
     const transactionsCollection = db.collection("transactions");
     const invoicesCollection = db.collection("invoices");
 
-    // Get all transactions
-    const [inflows, outflows] = await Promise.all([
+    // Get all completed transactions
+    const [inflows, outflows, pendingInflows, pendingOutflows] = await Promise.all([
       // Inflows (received payments + paid invoices where user is payee)
       Promise.all([
         transactionsCollection
@@ -43,31 +43,19 @@ export async function GET(req: NextRequest) {
             "invoice.payer": address 
           })
           .toArray()
-      ])
-    ]);
-
-    // Get pending and overdue invoices
-    const currentDate = new Date().toISOString();
-    const [pendingInvoices, overdueInvoices] = await Promise.all([
-      // Pending invoices (user is either payer or payee)
+      ]),
+      // Pending Inflows (pending invoices where user is payee)
       invoicesCollection
         .find({ 
           status: "pending",
-          $or: [
-            { "invoice.payer": address },
-            { "invoice.payee": address }
-          ]
+          "invoice.payee": address 
         })
         .toArray(),
-      // Overdue invoices (pending and past due date)
+      // Pending Outflows (pending invoices where user is payer)
       invoicesCollection
-        .find({
+        .find({ 
           status: "pending",
-          "invoice.dueDate": { $lt: currentDate },
-          $or: [
-            { "invoice.payer": address },
-            { "invoice.payee": address }
-          ]
+          "invoice.payer": address 
         })
         .toArray()
     ]);
@@ -83,14 +71,17 @@ export async function GET(req: NextRequest) {
       ...outflows[1].map(invoice => Number(invoice.invoice?.amount) || 0)
     ].reduce((sum, amount) => sum + amount, 0);
 
-    // Get recent inflow transactions
-    const recentInflows = [...inflows[0], ...inflows[1]]
-      .sort((a, b) => b.timestamp - a.timestamp)
-      .slice(0, 5)
-      .map(tx => ({
-        ...tx,
-        type: 'invoice' in tx ? 'invoice' : 'payment'
-      }));
+    const pendingInflowTotal = pendingInflows.reduce(
+      (sum, invoice) => sum + (Number(invoice.invoice?.amount) || 0), 
+      0
+    );
+
+    const pendingOutflowTotal = pendingOutflows.reduce(
+      (sum, invoice) => sum + (Number(invoice.invoice?.amount) || 0), 
+      0
+    );
+
+    const netChange = inflowTotal - outflowTotal;
 
     return NextResponse.json({
       success: true,
@@ -103,27 +94,26 @@ export async function GET(req: NextRequest) {
           total: outflowTotal,
           count: outflows[0].length + outflows[1].length
         },
-        pendingInvoices: {
-          count: pendingInvoices.length,
-          amount: pendingInvoices.reduce((sum, invoice) => 
-            sum + (Number(invoice.invoice?.amount) || 0), 0
-          )
+        netChange: {
+          amount: netChange,
+          isPositive: netChange >= 0
         },
-        overdueInvoices: {
-          count: overdueInvoices.length,
-          amount: overdueInvoices.reduce((sum, invoice) => 
-            sum + (Number(invoice.invoice?.amount) || 0), 0
-          )
+        pendingInflow: {
+          total: pendingInflowTotal,
+          count: pendingInflows.length
+        },
+        pendingOutflow: {
+          total: pendingOutflowTotal,
+          count: pendingOutflows.length
         }
-      },
-      recentInflows: recentInflows
+      }
     });
 
   } catch (error) {
     console.error('Database Error:', error);
     return NextResponse.json({ 
       success: false, 
-      message: 'Error fetching dashboard stats',
+      message: 'Error fetching account stats',
       error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }

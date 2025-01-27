@@ -1,26 +1,35 @@
 import { useState, useEffect } from 'react';
 import { useAppKitAccount, useAppKitNetwork } from "@reown/appkit/react";
 
-interface InvoiceStats {
-  outstanding: {
-    amount: number;
+interface AccountStats {
+  inflow: {
+    total: number;
     count: number;
   };
-  paid: {
-    amount: number;
+  outflow: {
+    total: number;
     count: number;
   };
-  overdue: {
+  netChange: {
+    amount: number;
+    isPositive: boolean;
+  };
+  pendingInflow: {
+    total: number;
+    count: number;
+  };
+  pendingOutflow: {
+    total: number;
     count: number;
   };
 }
 
-export const useInvoiceStats = () => {
+export const useAccountStats = () => {
   const { address, isConnected } = useAppKitAccount();
   const { caipNetwork } = useAppKitNetwork();
   const isSolanaNetwork = caipNetwork?.name?.toLowerCase().includes('solana');
 
-  const [stats, setStats] = useState<InvoiceStats | null>(null);
+  const [stats, setStats] = useState<AccountStats | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -38,7 +47,7 @@ export const useInvoiceStats = () => {
       setError(null);
 
       try {
-        const response = await fetch(`/api/invoices/stats?address=${address}`);
+        const response = await fetch(`/api/account/stats?address=${address}`);
         const data = await response.json();
 
         if (!response.ok) {
@@ -51,8 +60,8 @@ export const useInvoiceStats = () => {
           throw new Error(data.message);
         }
       } catch (err) {
-        console.error('Error fetching stats:', err);
-        setError(err instanceof Error ? err : new Error('Failed to fetch stats'));
+        console.error('Error fetching account stats:', err);
+        setError(err instanceof Error ? err : new Error('Failed to fetch account stats'));
         setStats(null);
       } finally {
         setIsLoading(false);
@@ -62,29 +71,11 @@ export const useInvoiceStats = () => {
     fetchStats();
   }, [address, isConnected, isSolanaNetwork]);
 
-  const refresh = async () => {
-    setStats(null);
-    setIsLoading(true);
-    
-    try {
-      const response = await fetch('/api/invoices/stats');
-      const data = await response.json();
-      if (!data.success) throw new Error(data.message);
-      setStats(data.stats);
-    } catch (err) {
-      console.error('Error fetching stats:', err);
-      setError(err instanceof Error ? err : new Error('Failed to fetch stats'));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return {
     stats,
     isLoading,
     error,
     isConnected,
-    isSolanaNetwork,
-    refresh
+    isSolanaNetwork
   };
 }; 

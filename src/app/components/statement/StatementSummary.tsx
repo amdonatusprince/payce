@@ -1,8 +1,9 @@
-import { ArrowTrendingUpIcon, ArrowTrendingDownIcon } from '@heroicons/react/24/outline';
-import { useState, useEffect } from 'react';
+import { ArrowTrendingUpIcon, ArrowTrendingDownIcon, ArrowsRightLeftIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { useAppKitAccount, useAppKitNetwork } from "@reown/appkit/react";
+import { useAccountStats } from '@/app/hooks/useAccountStats';
 import { retrieveRequest } from '@/app/requests/RetrieveRequest';
 import { formatUnits } from 'viem';
-import { useAppKitAccount } from "@reown/appkit/react";
+import { useState, useEffect } from 'react';
 
 interface StatementSummaryProps {
   dateRange: {
@@ -11,21 +12,67 @@ interface StatementSummaryProps {
   };
 }
 
+interface AccountStats {
+  inflow: {
+    total: number;
+    count: number;
+  };
+  outflow: {
+    total: number;
+    count: number;
+  };
+  netChange: {
+    amount: number;
+    isPositive: boolean;
+  };
+  pendingInflow: {
+    total: number;
+    count: number;
+  };
+  pendingOutflow: {
+    total: number;
+    count: number;
+  };
+}
+
+interface RequestStats {
+  totalInflow: number;
+  totalOutflow: number;
+  netChange: number;
+  pendingInflow: number;
+  pendingOutflow: number;
+}
+
+const isSolanaStats = (stats: AccountStats | RequestStats): stats is AccountStats => {
+  return 'inflow' in stats;
+};
+
 export const StatementSummary = ({ dateRange }: StatementSummaryProps) => {
   const { address, isConnected } = useAppKitAccount();
-  const [isLoading, setIsLoading] = useState(false);
-  const [summary, setSummary] = useState({
+  const { caipNetwork } = useAppKitNetwork();
+  const isSolanaNetwork = caipNetwork?.name?.toLowerCase().includes('solana');
+
+  // Solana stats
+  const { stats: solanaStats, isLoading: isSolanaLoading } = useAccountStats() as { 
+    stats: AccountStats | null; 
+    isLoading: boolean 
+  };
+
+  // Request Network stats
+  const [requestStats, setRequestStats] = useState({
     totalInflow: 0,
     totalOutflow: 0,
     netChange: 0,
     pendingInflow: 0,
     pendingOutflow: 0,
   });
+  const [isRequestLoading, setIsRequestLoading] = useState(false);
 
+  // Fetch Request Network stats
   useEffect(() => {
-    const calculateSummary = async () => {
-      if (!isConnected || !address) return;
-      setIsLoading(true);
+    const calculateRequestStats = async () => {
+      if (!isConnected || !address || isSolanaNetwork) return;
+      setIsRequestLoading(true);
       try {
         const requests = await retrieveRequest(address);
         const validCurrencies = ['ETH', 'FAU'];
@@ -44,21 +91,15 @@ export const StatementSummary = ({ dateRange }: StatementSummaryProps) => {
           const isPayee = address.toLowerCase() === tx.payee?.value.toLowerCase();
 
           if (isPaid) {
-            if (isPayee) {
-              inflow += amount;
-            } else {
-              outflow += amount;
-            }
+            if (isPayee) inflow += amount;
+            else outflow += amount;
           } else {
-            if (isPayee) {
-              pendingIn += amount;
-            } else {
-              pendingOut += amount;
-            }
+            if (isPayee) pendingIn += amount;
+            else pendingOut += amount;
           }
         });
 
-        setSummary({
+        setRequestStats({
           totalInflow: inflow,
           totalOutflow: outflow,
           netChange: inflow - outflow,
@@ -66,114 +107,124 @@ export const StatementSummary = ({ dateRange }: StatementSummaryProps) => {
           pendingOutflow: pendingOut,
         });
       } finally {
-        setIsLoading(false);
+        setIsRequestLoading(false);
       }
     };
 
-    calculateSummary();
-  }, [address, isConnected]);
+    calculateRequestStats();
+  }, [address, isConnected, isSolanaNetwork]);
 
-  const renderValue = (value: number) => {
-    if (isLoading && isConnected) {
-      return (
-        <span className="inline-block animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-gray-900" />
-      );
+  const stats = isSolanaNetwork ? solanaStats : requestStats;
+  const isLoading = isSolanaNetwork ? isSolanaLoading : isRequestLoading;
+  const currency = isSolanaNetwork ? 'USDC' : 'ETH';
+
+  const statsConfig = [
+    {
+      id: 1,
+      title: 'Total Inflow',
+      value: stats && isSolanaStats(stats) 
+        ? stats.inflow.total 
+        : stats?.totalInflow || 0,
+      count: stats && isSolanaStats(stats) ? stats.inflow.count : undefined,
+      icon: ArrowTrendingUpIcon,
+      iconBackground: 'bg-green-100',
+      iconColor: 'text-green-600',
+      textColor: 'text-green-600'
+    },
+    {
+      id: 2,
+      title: 'Total Outflow',
+      value: stats && isSolanaStats(stats) 
+        ? stats.outflow.total 
+        : stats?.totalOutflow || 0,
+      count: stats && isSolanaStats(stats) ? stats.outflow.count : undefined,
+      icon: ArrowTrendingDownIcon,
+      iconBackground: 'bg-red-100',
+      iconColor: 'text-red-600',
+      textColor: 'text-red-600'
+    },
+    {
+      id: 3,
+      title: 'Net Change',
+      value: stats && isSolanaStats(stats) 
+        ? stats.netChange.amount 
+        : stats?.netChange || 0,
+      isPositive: stats && isSolanaStats(stats) 
+        ? stats.netChange.isPositive
+        : (stats?.netChange || 0) >= 0,
+      icon: ArrowsRightLeftIcon,
+      iconBackground: 'bg-blue-100',
+      iconColor: 'text-blue-600',
+      textColor: 'text-blue-600'
+    },
+    {
+      id: 4,
+      title: 'Pending',
+      inflow: stats && isSolanaStats(stats) 
+        ? stats.pendingInflow.total 
+        : stats?.pendingInflow || 0,
+      outflow: stats && isSolanaStats(stats) 
+        ? stats.pendingOutflow.total 
+        : stats?.pendingOutflow || 0,
+      icon: ClockIcon,
+      iconBackground: 'bg-yellow-100',
+      iconColor: 'text-yellow-600'
     }
-    return value.toLocaleString();
-  };
+  ];
 
   return (
     <div className="w-full max-w-[100vw] px-2 sm:px-0">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
-        {/* Inflow Card */}
-        <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-gray-600">Total Inflow</p>
-              <div className="flex items-baseline space-x-1">
-                <p className="text-sm sm:text-lg font-bold text-green-600">
-                  +{renderValue(summary.totalInflow)}
-                </p>
-                <span className="text-[10px] sm:text-xs text-gray-600">USDC</span>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {statsConfig.map((stat) => (
+          <div
+            key={stat.id}
+            className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow"
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                {stat.id === 4 ? (
+                  <div className="mt-2 space-y-1">
+                    <div className="flex items-baseline space-x-1">
+                      <p className="text-sm text-green-600">
+                        +{isLoading ? '-' : (stat.inflow ?? 0).toLocaleString()}
+                      </p>
+                      <span className="text-xs text-gray-600">{currency}</span>
+                    </div>
+                    <div className="flex items-baseline space-x-1">
+                      <p className="text-sm text-red-600">
+                        -{isLoading ? '-' : (stat.outflow ?? 0).toLocaleString()}
+                      </p>
+                      <span className="text-xs text-gray-600">{currency}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-2">
+                    <div className="flex items-baseline space-x-1">
+                      <p className={`text-lg font-semibold ${
+                        stat.id === 3 
+                          ? stat.isPositive ? 'text-green-600' : 'text-red-600'
+                          : stat.textColor
+                      }`}>
+                        {stat.id === 3 && (stat.value ?? 0) >= 0 ? '+' : ''}
+                        {isLoading ? '-' : (stat.value ?? 0).toLocaleString()}
+                      </p>
+                      <span className="text-sm text-gray-600">{currency}</span>
+                    </div>
+                    {stat.count !== undefined && !isLoading && (
+                      <p className="mt-1 text-xs text-gray-500">
+                        {stat.count} transaction{stat.count !== 1 ? 's' : ''}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
-            <div className="p-1.5 sm:p-2 bg-green-50 rounded-lg">
-              <ArrowTrendingUpIcon className="w-3 h-3 sm:w-5 sm:h-5 text-green-600" />
-            </div>
-          </div>
-        </div>
-
-        {/* Outflow Card */}
-        <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-gray-600">Total Outflow</p>
-              <div className="flex items-baseline space-x-1">
-                <p className="text-sm sm:text-lg font-bold text-red-600">
-                  -{renderValue(summary.totalOutflow)}
-                </p>
-                <span className="text-[10px] sm:text-xs text-gray-600">USDC</span>
-              </div>
-            </div>
-            <div className="p-1.5 sm:p-2 bg-red-50 rounded-lg">
-              <ArrowTrendingDownIcon className="w-3 h-3 sm:w-5 sm:h-5 text-red-600" />
-            </div>
-          </div>
-        </div>
-
-        {/* Net Change Card */}
-        <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-gray-600">Net Change</p>
-              <div className="flex items-baseline space-x-1">
-                <p className={`text-sm sm:text-lg font-bold ${
-                  summary.netChange >= 0 ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {summary.netChange >= 0 ? '+' : '-'}
-                  {Math.abs(summary.netChange).toLocaleString()}
-                </p>
-                <span className="text-[10px] sm:text-xs text-gray-600">USDC</span>
-              </div>
-            </div>
-            <div className={`p-1.5 sm:p-2 rounded-lg ${
-              summary.netChange >= 0 ? 'bg-green-50' : 'bg-red-50'
-            }`}>
-              {summary.netChange >= 0 ? (
-                <ArrowTrendingUpIcon className="w-3 h-3 sm:w-5 sm:h-5 text-green-600" />
-              ) : (
-                <ArrowTrendingDownIcon className="w-3 h-3 sm:w-5 sm:h-5 text-red-600" />
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Pending Card */}
-        <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
-          <div>
-            <p className="text-xs sm:text-sm text-gray-600">Pending</p>
-            <div className="mt-1 space-y-1">
-              <div className="flex justify-between text-xs sm:text-sm">
-                <span>Inflow:</span>
-                <div className="flex items-baseline space-x-1">
-                  <span className="text-green-600">
-                    +{renderValue(summary.pendingInflow)}
-                  </span>
-                  <span className="text-[10px] sm:text-xs text-gray-600">USDC</span>
-                </div>
-              </div>
-              <div className="flex justify-between text-xs sm:text-sm">
-                <span>Outflow:</span>
-                <div className="flex items-baseline space-x-1">
-                  <span className="text-red-600">
-                    -{renderValue(summary.pendingOutflow)}
-                  </span>
-                  <span className="text-[10px] sm:text-xs text-gray-600">USDC</span>
-                </div>
+              <div className={`${stat.iconBackground} p-3 rounded-lg`}>
+                <stat.icon className={`h-6 w-6 ${stat.iconColor}`} />
               </div>
             </div>
           </div>
-        </div>
+        ))}
       </div>
     </div>
   );
