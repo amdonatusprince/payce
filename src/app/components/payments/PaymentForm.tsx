@@ -1,16 +1,20 @@
 "use client"
 import { useState } from 'react';
 import { supportedCurrencies, supportedChains } from '../../../lib/constants';
-import { createPaymentRequest } from '../../requests/PaymentForwarder';
-import { Types } from "@requestnetwork/request-client.js";
-import { CurrencyTypes } from "@requestnetwork/types";
 import { parse } from 'papaparse';
-import { createBatchPayment } from '@/app/requests/BatchPayment';
 import { formatTransactionError } from '@/app/requests/utils/errorHandler';
-import { SinglePaymentPreview } from './SinglePaymentPreview';
-import { BatchPaymentPreview } from './BatchPaymentPreview';
-import { useAppKitAccount } from "@reown/appkit/react";
+import { SinglePaymentPreview } from './previews/SinglePaymentPreview';
+import { BatchPaymentPreview } from './previews/BatchPaymentPreview';
 import { useWalletClient } from 'wagmi';
+import { useAppKitAccount, useAppKitNetwork } from "@reown/appkit/react";
+import { useAppKitProvider } from '@reown/appkit/react'
+import { useAppKitConnection, type Provider } from '@reown/appkit-adapter-solana/react'
+import { PaymentSuccessModal } from './modals/PaymentSuccessModal';
+import { handleSinglePayment } from './handlers/SinglePaymentHandler';
+import { handleBatchPayment } from './handlers/BatchPaymentHandler';
+import { BatchRecipientForm } from './BatchRecipientForm';
+import { handleSolanaBatchPayment } from './handlers/SolanaBatchPaymentHandler';
+import { BatchPaymentSuccessModal } from './modals/BatchPaymentSuccessModal';
 
 interface BatchRecipient {
   address: string;
@@ -20,31 +24,47 @@ interface BatchRecipient {
 
 export const PaymentForm = () => {
   const { address, isConnected } = useAppKitAccount();
+  const { caipNetwork } = useAppKitNetwork();
   const { data: walletClient } = useWalletClient();
   const [paymentType, setPaymentType] = useState<'single' | 'batch'>('single');
   const [formData, setFormData] = useState({
-    payerAddress: '',
-    payerName: '',
+    recipientAddress: '',
+    recipientName: '',
     amount: '',
     currency: Object.keys(supportedCurrencies)[0],
-    network: supportedChains[0],
+    network: (caipNetwork?.name as "Base" | "Solana") || supportedChains[0] as "Base" | "Solana",
     reason: '',
     dueDate: '',
+    recipientEmail: '',
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [error, setError] = useState<string | null>(null);
   const [forwarderAddress, setForwarderAddress] = useState<string | null>(null);
-  const [loadingState, setLoadingState] = useState<string>('');
   const [showModal, setShowModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [copySuccess, setCopySuccess] = useState(false);
   const [batchRecipients, setBatchRecipients] = useState<BatchRecipient[]>([]);
   const [loadingStatus, setLoadingStatus] = useState('');
+  const [result, setResult] = useState<{
+    paymentDetails: {
+      recipient: string;
+      amount: string;
+      recipientName: string;
+      reason: string;
+      status: 'paid';
+      timestamp: number;
+      explorerUrl: string;
+    };
+  } | string | null>(null);
   const [batchResult, setBatchResult] = useState<{
     transactionHash?: string;
     error?: string;
+    successCount: number;
+    totalCount: number;
   } | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const { connection } = useAppKitConnection()
+  const { walletProvider } = useAppKitProvider<Provider>('solana')
+  const isSolanaNetwork = formData.network.toLowerCase().includes('solana');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({
@@ -55,13 +75,14 @@ export const PaymentForm = () => {
 
   const resetForm = () => {
     setFormData({
-      payerAddress: '',
-      payerName: '',
+      recipientAddress: '',
+      recipientName: '',
       amount: '',
       currency: Object.keys(supportedCurrencies)[0],
-      network: supportedChains[0],
+      network: (caipNetwork?.name as "Base" | "Solana") || supportedChains[0] as "Base" | "Solana",
       reason: '',
       dueDate: '',
+      recipientEmail: '',
     });
     setBatchRecipients([]);
     if (document.querySelector<HTMLInputElement>('input[type="file"]')) {
@@ -87,194 +108,93 @@ export const PaymentForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!isConnected || !address) {
+      setError('Please connect your wallet first');
+      return;
+    }
+
+    if (paymentType === 'batch' && batchRecipients.length === 0) {
+      setError('Please add at least one recipient to the batch');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     setBatchResult(null);
     setShowModal(false);
 
     try {
-      if (!isConnected || !address || !walletClient) {
-        throw new Error('Please connect your wallet first');
-      }
-
       if (paymentType === 'single') {
-        const params = {
-          payerAddress: formData.payerAddress,
-          expectedAmount: formData.amount,
-          currency: {
-            type: Types.RequestLogic.CURRENCY.ETH as const,
-            value: 'ETH',
-            network: formData.network.toLowerCase() as CurrencyTypes.ChainName,
-            decimals: supportedCurrencies[formData.currency as keyof typeof supportedCurrencies].decimals,
-          },
-          recipientAddress: address,
-          reason: formData.reason,
-          dueDate: formData.dueDate,
-          contentData: {
-            transactionType: 'single_forwarder' as const,
-            paymentDetails: {
-              payerName: formData.payerName,
-              reason: formData.reason,
-              dueDate: formData.dueDate,
-            },
-            metadata: {
-              createdAt: new Date().toISOString(),
-              builderId: "payce-finance",
-              createdBy: address,
-            }
-          },
-          walletClient,
-        };
-
-        const result = await createPaymentRequest({ params });
-        if (result) {
-          setForwarderAddress(result);
-          setShowModal(true);
-          resetForm();
-          setBatchRecipients([]);
+        if (!formData.recipientAddress || !formData.amount) {
+          throw new Error('Please fill in all required fields');
         }
+        const result = await handleSinglePayment({
+          formData,
+          address,
+          walletClient,
+          connection,
+          walletProvider,
+          isSolanaNetwork
+        });
+        
+        setResult(result);
+        setShowModal(true);
+        resetForm();
       } else {
-        if (!batchRecipients.length) {
-          throw new Error('Please upload a CSV file with recipients');
-        }
-
-        const params = {
-          payerAddress: address,
-          currency: {
-            type: Types.RequestLogic.CURRENCY.ETH as const,
-            value: 'ETH',
-            network: formData.network.toLowerCase() as CurrencyTypes.ChainName,
-            decimals: supportedCurrencies[formData.currency as keyof typeof supportedCurrencies].decimals,
-          },
-          recipients: batchRecipients,
-          dueDate: formData.dueDate,
-          walletClient,
-          onStatusChange: (status: string) => {
-            setLoadingStatus(status);
-            if (status.includes('4/4')) {
-              setError(null);
-            }
-          },
-          onEmployeeProgress: (completed: number, total: number) => {
-            setLoadingStatus(`Processing ${completed}/${total} payments...`);
-            if (completed === total) {
-              setError(null);
-            }
+        if (isSolanaNetwork) {
+          if (!connection) {
+            throw new Error('Solana connection not found');
           }
-        };
+          
+          const results = await handleSolanaBatchPayment({
+            recipients: batchRecipients,
+            connection,
+            walletProvider,
+            onStatusUpdate: setLoadingStatus,
+            network: formData.network.toLowerCase().includes('devnet') ? 'devnet' : 'mainnet'
+          });
 
-        const result = await createBatchPayment(params);
-        if (result?.transactionHash) {
+          const successfulPayments = results.filter(r => r.status === 'success');
+          const failedPayments = results.filter(r => r.status === 'failed');
+
           setBatchResult({
-            transactionHash: result.transactionHash
+            transactionHash: successfulPayments.map(r => r.signature).join(','),
+            error: failedPayments.length > 0 ? `${failedPayments.length} payments failed` : undefined,
+            successCount: successfulPayments.length,
+            totalCount: results.length
           });
           setShowModal(true);
-          resetForm();
-          setBatchRecipients([]);
+        } else {
+          const result = await handleBatchPayment({
+            formData,
+            address,
+            walletClient,
+            batchRecipients,
+            onStatusChange: setLoadingStatus,
+            onEmployeeProgress: (completed, total) => {
+              setLoadingStatus(`Processing ${completed}/${total} payments...`);
+            }
+          });
+          
+          setBatchResult({
+            transactionHash: result.transactionHash,
+            successCount: result.requests.length,
+            totalCount: result.requests.length,
+            error: undefined
+          });
+          setShowModal(true);
         }
+        resetForm();
       }
     } catch (error) {
       setError(formatTransactionError(error));
-      setBatchResult(error ? { error: formatTransactionError(error) } : null);
       console.error('Full payment error:', error);
     } finally {
       setIsLoading(false);
       setLoadingStatus('');
     }
   };
-
-  const BatchResultModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium">
-            {batchResult?.error ? 'Batch Payment Failed' : 'Batch Payment Successful'}
-          </h3>
-          <button
-            onClick={() => setShowModal(false)}
-            className="text-gray-400 hover:text-gray-500"
-          >
-            <span className="sr-only">Close</span>
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <div className="mb-4">
-          {batchResult?.error ? (
-            <p className="text-sm text-red-600">
-              Error: {batchResult.error}
-            </p>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-sm text-gray-600">
-                Batch payment has been successfully processed.
-              </p>
-            </div>
-          )}
-        </div>
-        <div className="flex justify-end">
-          <button
-            onClick={() => setShowModal(false)}
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const SinglePaymentModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium">Payment Created Successfully</h3>
-          <button
-            onClick={() => setShowModal(false)}
-            className="text-gray-400 hover:text-gray-500"
-          >
-            <span className="sr-only">Close</span>
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <div className="mb-4">
-          <p className="text-sm text-gray-600 mb-2">Forwarder Address:</p>
-          <div className="flex items-center gap-2 bg-gray-50 p-2 rounded">
-            <code className="text-sm font-mono break-all">{forwarderAddress}</code>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(forwarderAddress || '');
-                setCopySuccess(true);
-                setTimeout(() => setCopySuccess(false), 2000);
-              }}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              {copySuccess ? (
-                <svg className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              ) : (
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-              )}
-            </button>
-          </div>
-        </div>
-        <div className="flex justify-end">
-          <button
-            onClick={() => setShowModal(false)}
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <div className="w-full px-4 sm:px-6 lg:px-8">
@@ -313,35 +233,50 @@ export const PaymentForm = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
           {/* Form Section */}
           <div className="lg:max-w-xl">
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
               {paymentType === 'single' ? (
                 <>
                   <div>
                     <label className="block text-sm font-medium mb-1.5">
-                      Payer Name
+                      {isSolanaNetwork ? "Recipient Name" : "Payer Name"}
                     </label>
                     <input
                       type="text"
-                      name="payerName"
-                      value={formData.payerName}
+                      name="recipientName"
+                      value={formData.recipientName}
                       onChange={handleInputChange}
                       className="w-full p-2.5 border rounded-lg text-sm"
-                      placeholder="Enter payer name"
+                      placeholder="Enter your name"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1.5">
-                      Payer Address
+                      {isSolanaNetwork ? "Recipient Address" : "Payer Address"}
                     </label>
                     <input
                       type="text"
-                      name="payerAddress"
-                      value={formData.payerAddress}
+                      name="recipientAddress"
+                      value={formData.recipientAddress}
                       onChange={handleInputChange}
                       className="w-full p-2.5 border rounded-lg text-sm"
-                      placeholder="0x..."
+                      placeholder={isSolanaNetwork ? "Solana address..." : "0x..."}
                     />
                   </div>
+                  {isSolanaNetwork && (
+                    <div>
+                      <label className="block text-sm font-medium mb-1.5">
+                        Recipient Email (Optional)
+                      </label>
+                      <input
+                        type="email"
+                        name="recipientEmail"
+                        value={formData.recipientEmail || ''}
+                        onChange={handleInputChange}
+                        className="w-full p-2.5 border rounded-lg text-sm"
+                        placeholder="recipient@example.com"
+                      />
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium mb-1.5">
                       Amount
@@ -371,20 +306,13 @@ export const PaymentForm = () => {
                 </>
               ) : (
                 <div>
-                  <label className="block text-sm font-medium mb-1.5">
-                    Upload Recipients CSV
-                  </label>
-                  <input
-                    type="file"
-                    accept=".csv"
-                    onChange={handleFileUpload}
-                    className="w-full p-2.5 border rounded-lg text-sm"
+                  <BatchRecipientForm
+                    recipients={batchRecipients}
+                    onRecipientsChange={setBatchRecipients}
+                    currency={formData.currency}
+                    network={formData.network}
+                    handleFileUpload={handleFileUpload}
                   />
-                  {batchRecipients.length > 0 && (
-                    <div className="mt-2 text-sm text-gray-600">
-                      {batchRecipients.length} recipients loaded
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -397,6 +325,7 @@ export const PaymentForm = () => {
                   value={formData.currency}
                   onChange={handleInputChange}
                   className="w-full p-2.5 border rounded-lg text-sm bg-white"
+                  disabled={true}
                 >
                   {Object.keys(supportedCurrencies).map((currency) => (
                     <option key={currency} value={currency} className="truncate">
@@ -412,15 +341,13 @@ export const PaymentForm = () => {
                 </label>
                 <select 
                   name="network"
-                  value={formData.network}
-                  onChange={handleInputChange}
+                  value={caipNetwork?.name || ''}
                   className="w-full p-2.5 border rounded-lg text-sm bg-white"
+                  disabled={true}
                 >
-                  {supportedChains.map((chain) => (
-                    <option key={chain} value={chain}>
-                      {chain}
-                    </option>
-                  ))}
+                  <option value={caipNetwork?.name || ''}>
+                    {caipNetwork?.name || 'Please connect wallet'}
+                  </option>
                 </select>
               </div>
 
@@ -428,35 +355,34 @@ export const PaymentForm = () => {
                 type="submit"
                 disabled={isLoading || !address}
                 className="w-full py-2.5 bg-primary-600 text-white rounded-lg disabled:opacity-50 
-                         flex items-center justify-center text-sm sm:text-base transition-colors hover:bg-primary-700"
+                         flex items-center justify-center text-sm transition-colors hover:bg-primary-700 min-h-[44px]"
               >
                 {!address ? 'Connect Wallet First' : (
-                  <>
-                    <span className="mr-2">
-                      {isLoading ? loadingStatus : paymentType === 'single' ? 'Receive Payment' : 'Send Batch Payment'}
+                  <div className="flex items-center space-x-2 px-2">
+                    <span className="truncate text-xs sm:text-sm">
+                      {isLoading ? loadingStatus : (isSolanaNetwork ? 'Send Payment' : 'Receive Payment')}
                     </span>
                     {isLoading && (
-                      <div className="animate-spin h-4 w-4 border-2 border-white rounded-full border-t-transparent"></div>
+                      <div className="animate-spin h-4 w-4 border-2 border-white rounded-full border-t-transparent flex-shrink-0"></div>
                     )}
-                  </>
+                  </div>
                 )}
               </button>
             </form>
           </div>
 
-          {/* Desktop Preview */}
+          {/* Preview Section - Hidden on mobile, always visible on desktop */}
           <div className="hidden lg:block">
-            <div className="sticky top-4">
-              {paymentType === 'single' ? (
-                <SinglePaymentPreview formData={formData} />
-              ) : (
-                <BatchPaymentPreview 
-                  recipients={batchRecipients}
-                  currency={formData.currency}
-                  network={formData.network}
-                />
-              )}
-            </div>
+            {paymentType === 'single' ? (
+              <SinglePaymentPreview formData={formData} />
+            ) : (
+              <BatchPaymentPreview
+                recipients={batchRecipients}
+                onRecipientsChange={setBatchRecipients}
+                currency={formData.currency}
+                network={formData.network}
+              />
+            )}
           </div>
 
           {/* Mobile Preview Toggle & Preview */}
@@ -473,8 +399,9 @@ export const PaymentForm = () => {
                 {paymentType === 'single' ? (
                   <SinglePaymentPreview formData={formData} />
                 ) : (
-                  <BatchPaymentPreview 
+                  <BatchPaymentPreview
                     recipients={batchRecipients}
+                    onRecipientsChange={setBatchRecipients}
                     currency={formData.currency}
                     network={formData.network}
                   />
@@ -484,14 +411,22 @@ export const PaymentForm = () => {
           </div>
         </div>
 
-        {/* Modals - ensure they're responsive too */}
-        {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md mx-auto">
-              {paymentType === 'single' ? <SinglePaymentModal /> : <BatchResultModal />}
-            </div>
-          </div>
-        )}
+        {showModal && batchResult && paymentType === 'batch' ? (
+          <BatchPaymentSuccessModal
+            onClose={() => setShowModal(false)}
+            successCount={batchResult.successCount}
+            totalCount={batchResult.totalCount}
+          />
+        ) : showModal && result ? (
+          <PaymentSuccessModal
+            onClose={() => setShowModal(false)}
+            explorerUrl={(typeof result === 'object' && 'paymentDetails' in result) ? result.paymentDetails.explorerUrl : ''}
+            amount={(typeof result === 'object' && 'paymentDetails' in result) ? result.paymentDetails.amount : ''}
+            recipientName={(typeof result === 'object' && 'paymentDetails' in result) ? result.paymentDetails.recipientName : ''}
+            isSolanaNetwork={isSolanaNetwork}
+            forwarderAddress={!isSolanaNetwork ? forwarderAddress ?? undefined : undefined}
+          />
+        ) : null}
       </div>
     </div>
   );

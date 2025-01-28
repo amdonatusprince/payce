@@ -23,6 +23,12 @@ interface InvoiceData {
     clientDetails: {
       name: string;
       address: string;
+      email: string;
+    };
+    businessDetails: {
+      name: string;
+      address: string;
+      email: string;
     };
     paymentDetails: {
       reason?: string;
@@ -56,6 +62,12 @@ export const createInvoiceRequest = async (params: any) => {
         clientDetails: {
           name: params.contentData.clientDetails.name,
           address: params.contentData.clientDetails.address,
+          email: params.contentData.clientDetails.email,
+        },
+        businessDetails: {
+          name: params.contentData.businessDetails.name,
+          address: params.contentData.businessDetails.address,
+          email: params.contentData.businessDetails.email,
         },
         paymentDetails: {
           reason: params.reason,
@@ -64,48 +76,35 @@ export const createInvoiceRequest = async (params: any) => {
       }
     };
 
-    // Create a unique filename
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const fileName = `invoice-${params.payeeAddress.slice(0, 6)}-${timestamp}.json`;
-
-    // Upload to IPFS via API route
-    const formData = new FormData();
-    formData.append(
-      'file', 
-      new Blob([JSON.stringify(invoiceData)], { type: 'application/json' }),
-      fileName 
-    );
-
-    const response = await fetch('/api/files', {
+    // Create invoice using our new backend API
+    const response = await fetch('/api/invoices/create', {
       method: 'POST',
-      body: formData
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(invoiceData)
     });
 
     if (!response.ok) {
-      throw new Error('Failed to upload invoice data to IPFS');
+      throw new Error('Failed to create invoice');
     }
 
-    const { cid, url } = await response.json();
+    const { transactionId } = await response.json();
 
+    if (!transactionId) {
+      throw new Error('No transaction ID returned from server');
+    }
+
+    // Return success response with transaction ID
     return {
-      requestId: cid,
-      currency: params.currency.value,
-      expectedAmount: params.expectedAmount,
-      payee: {
-        type: 'solana',
-        value: params.payeeAddress
-      },
-      payer: {
-        type: 'solana',
-        value: params.payerAddress
-      },
-      timestamp: Date.now(),
-      ipfsUrl: url,
-      network: params.currency.network,
-      contentData: params.contentData
+      transactionId,
+      explorerUrl: params.currency.network.toLowerCase().includes('devnet') 
+        ? `https://explorer.solana.com/tx/${transactionId}?cluster=devnet`
+        : `https://explorer.solana.com/tx/${transactionId}`
     };
+
   } catch (error) {
-    console.error('Error creating Solana invoice request:', error);
+    console.error('Create invoice error:', error);
     throw error;
   }
 };

@@ -3,8 +3,8 @@ import { SupportedChain } from '@/lib/constants';
 
 interface SinglePaymentPreviewProps {
   formData: {
-    payerName: string;
-    payerAddress: string;
+    recipientName: string;
+    recipientAddress: string;
     amount: string;
     currency: string;
     network: SupportedChain;
@@ -32,10 +32,10 @@ export const SinglePaymentPreview = ({ formData }: SinglePaymentPreviewProps) =>
         <div className="bg-gray-50 rounded-lg p-4">
           <h4 className="font-medium text-sm text-gray-700 mb-3">Payer Details</h4>
           <div className="space-y-2">
-            <p className="text-sm font-medium">{formData.payerName || 'Payer Name'}</p>
+            <p className="text-sm font-medium">{formData.recipientName || 'Payer Name'}</p>
             <div className="text-sm text-gray-600">
               <span>Wallet: </span>
-              <span className="font-mono">{formatWalletAddress(formData.payerAddress)}</span>
+              <span className="font-mono">{formatWalletAddress(formData.recipientAddress)}</span>
               <span className="text-gray-500 ml-1">({formData.network})</span>
             </div>
           </div>
