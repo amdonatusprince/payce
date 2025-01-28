@@ -9,6 +9,7 @@ import {
   getAccount,
   getMint
 } from '@solana/spl-token';
+import { USDC_MINT } from '@/lib/constants';
 
 interface SendPaymentParams {
   connection: any;
@@ -27,7 +28,7 @@ export const sendSolanaPayment = async (params: SendPaymentParams) => {
   try {
 
     // USDC mint on mainnet/devnet
-    const usdcMint = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
+    const usdcMint = USDC_MINT;
     
     // Get mint decimals
     const mintInfo = await getMint(connection, usdcMint);

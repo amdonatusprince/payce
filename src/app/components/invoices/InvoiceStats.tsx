@@ -86,9 +86,9 @@ export const InvoiceStats = () => {
                 )}
               </div>
               {(stat.id === 1 || stat.id === 3) && !isLoading && isConnected && (
-                <p className="mt-1 text-xs text-gray-500">
+                <div className="mt-1 text-xs text-gray-500">
                   {stat.count} invoice{stat.count !== 1 ? 's' : ''}
-                </p>
+                </div>
               )}
             </div>
           </div>
