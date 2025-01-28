@@ -1,6 +1,9 @@
 import { PublicKey } from "@solana/web3.js";
 
 export const PAYMENT_PROXY_PROGRAM_ID = new PublicKey("URMK39HrCR54mssQa2tub7596Y3M5VcLVLEgX1wZe56");
+
+export const USDC_MINT = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
+
 export const supportedCurrencies = {
   'USDC': { decimals: 6 },
 

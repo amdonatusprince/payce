@@ -110,9 +110,11 @@ export const RecentPaymentTransactions = () => {
         <div className="divide-y">
           {allTransactions.map((tx) => {
             const details = getTransactionDetails(tx);
+            const uniqueKey = Math.random().toString();
+            
             return (
               <div 
-                key={details.id}
+                key={uniqueKey}
                 className="p-3 sm:p-4 hover:bg-gray-50 cursor-pointer"
                 onClick={() => {
                   setSelectedTx(tx);

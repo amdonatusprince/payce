@@ -12,6 +12,10 @@ import { useState } from "react";
 import { getTransactionStatus } from "@/app/requests/utils/transactionStatus";
 import { SolanaInvoice } from "@/app/hooks/useSolanaInvoices";
 import { SolanaTransaction } from "@/app/hooks/useSolanaTransactions";
+import { payInvoice } from "@/app/requests/solana/PayInvoice";
+import { useAppKitNetwork, useAppKitAccount, useAppKitProvider } from "@reown/appkit/react";
+import { useAppKitConnection, type Provider } from '@reown/appkit-adapter-solana/react'
+
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -26,13 +30,18 @@ export function TransactionModal({
   transaction,
   isSolanaTransaction,
 }: TransactionModalProps) {
-  const { address } = useAccount();
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
   const [paymentStatus, setPaymentStatus] = useState<RequestStatus>("checking");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const { caipNetwork } = useAppKitNetwork();
+  const { address } = useAppKitAccount();
+  const { connection } = useAppKitConnection();
+  const { walletProvider } = useAppKitProvider<Provider>('solana');
+  const isSolanaNetwork = caipNetwork?.name?.toLowerCase().includes('solana');
+  const network = caipNetwork?.name?.toLowerCase().includes('devnet') ? 'devnet' : 'mainnet';
 
   if (!transaction) return null;
 
@@ -54,10 +63,10 @@ export function TransactionModal({
   };
 
   const isPayer = isSolanaInvoice(transaction)
-    ? address?.toLowerCase() === transaction.invoice.payer.toLowerCase()
+    ? address === transaction.invoice.payer
     : isSolanaTx(transaction)
-    ? address?.toLowerCase() === transaction.sender.toLowerCase()
-    : address?.toLowerCase() === transaction.payer?.value.toLowerCase();
+    ? address === transaction.sender
+    : address?.toLowerCase() === transaction.payer?.value?.toLowerCase();
 
   const handlePayNow = async () => {
     if (!address || !publicClient || !walletClient) return;
@@ -92,6 +101,44 @@ export function TransactionModal({
           setError(result.error);
           setPaymentStatus("checking");
         }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Payment failed");
+      setPaymentStatus("checking");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handlePayInvoice = async () => {
+    if (!address) return;
+
+    setError(null);
+    setPaymentStatus("checking");
+    setIsProcessing(true);
+
+  const refreshPage = () => {
+    window.location.reload();
+  };
+
+    try {
+      const result = await payInvoice(
+        transaction,
+        connection,
+        walletProvider,
+        network || 'mainnet'
+      );
+
+      if (result.status === "completed") {
+        setShowSuccessModal(true);
+        setTimeout(() => {
+          setShowSuccessModal(false);
+          onClose();
+          refreshPage();
+        }, 3000);
+      } else if (result.error) {
+        setError(result.error);
+        setPaymentStatus("checking");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Payment failed");
@@ -159,7 +206,6 @@ export function TransactionModal({
           className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm"
           aria-hidden="true"
         />
-
         <div className="fixed inset-0 flex items-center justify-center p-2 sm:p-4">
           <Dialog.Panel className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl ring-1 ring-gray-200 overflow-y-auto max-h-[95vh]">
             {/* Header with gradient background */}
@@ -209,11 +255,14 @@ export function TransactionModal({
                 </div>
               )}
 
-              {/* Pay Now Button - Moved here for visibility */}
-              {isPayer && getStatus(transaction) !== "paid" && (
+              {/* Pay Now Button */}
+              {isPayer && (
+                (isSolanaNetwork && isSolanaInvoice(transaction) && getStatus(transaction) === 'pending') || 
+                (!isSolanaNetwork && getStatus(transaction) !== "paid")
+              ) && (
                 <div className="flex justify-center">
                   <button
-                    onClick={handlePayNow}
+                    onClick={isSolanaNetwork ? handlePayInvoice : handlePayNow}
                     disabled={isProcessing}
                     className="w-full sm:w-auto btn-primary text-sm px-6 py-2.5 rounded-xl shadow-sm hover:shadow-md transition-all"
                   >
@@ -344,10 +393,7 @@ export function TransactionModal({
                             <div className="space-y-2">
                               <p className="text-sm text-gray-600">
                                 <span className="font-medium">Due Date: </span>
-                                {format(
-                                  new Date(transaction.invoice.dueDate),
-                                  "PPP"
-                                )}
+                                {format(new Date(transaction.invoice.dueDate), "PPP")}
                               </p>
                               <p className="text-sm text-gray-600">
                                 <span className="font-medium">Reason: </span>
@@ -357,6 +403,17 @@ export function TransactionModal({
                                 <span className="font-medium">Network: </span>
                                 {transaction.network}
                               </p>
+                              {transaction.status === 'paid' && transaction.explorerUrl && (
+                                <a
+                                  href={transaction.explorerUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 text-sm"
+                                >
+                                  View on Explorer
+                                  <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+                                </a>
+                              )}
                             </div>
                           </div>
                           <div className="bg-gray-50 rounded-lg p-4">
