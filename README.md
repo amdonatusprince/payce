@@ -9,7 +9,7 @@ Website URL: https://payce.vercel.app
 
 ## Features  
 
-- **Seamless Payments**: Businesses, creators, and merchants can receive payments effortlessly from anyone using the Request Network’s single request forwarder.  
+- **Seamless Payments**: Businesses, creators, and merchants can receive payments effortlessly from anyone.  
 - **Batch Payments**: Send multiple payments to vendors or process employee payroll using the Request Network’s batch payment feature.
 - **Invoice Creation**: Businesses and merchants can generate invoices for their customers directly on Payce, making managing billing and payment collection easy.    
 - **Transaction Insights**:  
