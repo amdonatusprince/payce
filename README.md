@@ -1,6 +1,6 @@
 # Payce  
 
-**Payce** is the first entirely on-chain, autonomous, and decentralized payment infrastructure for businesses and merchants, powered by the Request Network.  
+**Payce** is the first entirely on-chain autonomous payment infrastructure for businesses and merchants.
 
 ## Useful Resources
 Demo Video: https://youtu.be/IT4WqHqvcc4
@@ -11,15 +11,9 @@ Website URL: https://payce.vercel.app
 
 - **Seamless Payments**: Businesses, creators, and merchants can receive payments effortlessly from anyone using the Request Network’s single request forwarder.  
 - **Batch Payments**: Send multiple payments to vendors or process employee payroll using the Request Network’s batch payment feature.
-- **Invoice Creation**: Businesses and merchants can generate invoices for their customers directly on Payce, making it easy to manage billing and payment collection.   
-- **Marketplace for Products and Services**:  
-  - List your products and services on the Payce marketplace.  
-  - Integrated payment checkout with the Request Network’s payment widget.  
-- **Talent Escrow System**:  
-  - Talents listed on the marketplace can be hired and paid by businesses.  
-  - Payments are securely held in an escrow contract and released once the terms of the agreement are met.  
+- **Invoice Creation**: Businesses and merchants can generate invoices for their customers directly on Payce, making managing billing and payment collection easy.    
 - **Transaction Insights**:  
-  - Payce consumes data from the Request Network to display comprehensive transaction history.  
+  - Payce consumes data from the network to display comprehensive transaction history.  
   - Includes enriched transaction metadata for robust account statements.  
 
 ## Next Steps  
