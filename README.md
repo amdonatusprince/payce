@@ -3,7 +3,7 @@
 **Payce** is the first entirely on-chain autonomous payment infrastructure for businesses and merchants.
 
 ## Useful Resources
-Demo Video: https://youtu.be/IT4WqHqvcc4
+Demo Video: https://youtu.be/uu7GbqnAtQQ
 
 Website URL: https://payce.vercel.app
 
