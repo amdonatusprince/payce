@@ -10,7 +10,7 @@ Website URL: https://payce.vercel.app
 ## Features  
 
 - **Seamless Payments**: Businesses, creators, and merchants can receive payments effortlessly from anyone.  
-- **Batch Payments**: Send multiple payments to vendors or process employee payroll using the Request Network’s batch payment feature.
+- **Batch Payments**: Send multiple payments to vendors or process employee payroll using the Payce Network’s batch payment feature.
 - **Invoice Creation**: Businesses and merchants can generate invoices for their customers directly on Payce, making managing billing and payment collection easy.    
 - **Transaction Insights**:  
   - Payce consumes data from the network to display comprehensive transaction history.  
@@ -19,8 +19,31 @@ Website URL: https://payce.vercel.app
 ## Next Steps  
 
 - **Embedded Wallet Integration**:  
-  Implementing a custodial wallet infrastructure for Payce users to enhance accessibility and convenience.  
+  Implementing a custodial wallet infrastructure for Payce users to enhance accessibility and convenience.
+- **AI Agent Integration**:  
+  Integrating AI agents to completely automate all financial admin tasks and connect users to autonomous DeFi.
 
+## Reown App Kit Integration
+
+We use Reown's App Kit for seamless wallet connection and network validation. Here's how we utilize the key hooks:
+
+```typescript
+// Network Validation
+const { caipNetwork } = useAppKitNetwork();
+// Checks current network and ensures the user is on Solana
+
+// Account Status
+const { address, isConnected } = useAppKitAccount();
+// Manages wallet connection state and user's address
+
+// Connection Management
+const { connection } = useAppKitConnection();
+// Handles RPC connection to Solana network
+
+// Wallet Provider
+const { walletProvider } = useAppKitProvider<Provider>('solana');
+// Provides Solana wallet interface for transactions
+```
 ## Get Started  
 
 ### Prerequisites  
