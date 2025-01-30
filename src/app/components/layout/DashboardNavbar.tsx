@@ -4,9 +4,23 @@ import Link from 'next/link';
 import { BellIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 import Logo from '../../../../public/payceLogo.png';
+import { useAppKitAccount, useAppKitNetwork } from "@reown/appkit/react";
 
 export const DashboardNavbar = () => {
-  const [notifications] = useState(5); // Example notification count
+  const [notifications] = useState(5);
+  const { address, isConnected } = useAppKitAccount();
+  const { caipNetwork } = useAppKitNetwork();
+
+  // Format address for display
+  const formatAddress = (addr: string | undefined) => {
+    if (!addr) return '';
+    return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
+  };
+
+  // Get network display name
+  const networkName = caipNetwork?.name?.toLowerCase().includes('devnet') 
+    ? 'Devnet' 
+    : 'Mainnet';
 
   return (
     <header className="fixed top-0 left-0 right-0 h-16 bg-white border-b z-50">
@@ -34,22 +48,31 @@ export const DashboardNavbar = () => {
             )}
           </button>
 
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <div className="text-sm font-medium">John Doe</div>
-              <div className="text-xs text-gray-500">demo@payce.xyz</div>
-            </div>
-            <button className="w-8 h-8 rounded-full bg-gray-200">
-              <Image className="w-full h-full rounded-full"
-              src="/profile.jpg"
-              alt="Logo"
-              width={32}
-              height={32}
-              priority
-            />
+          {isConnected && (
+            <div className="flex items-center gap-2">
+              {/* Network Badge - Always visible */}
+              <div className="px-2 py-0.5 rounded-full bg-green-100 text-green-800 text-xs font-medium whitespace-nowrap">
+                {networkName}
+              </div>
               
-            </button>
-          </div>
+              {/* Address - Responsive */}
+              <div className="flex flex-col items-end">
+                <div className="text-sm font-medium">
+                  {formatAddress(address)}
+                </div>
+                <div className="text-xs text-gray-500">
+                  Connected
+                </div>
+              </div>
+
+              {/* Avatar - Always visible */}
+              <div className="h-8 w-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+                <span className="text-white text-xs">
+                  {address ? address.slice(0, 2) : ''}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </header>

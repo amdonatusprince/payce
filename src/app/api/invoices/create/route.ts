@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { nanoid } from 'nanoid';
-import { InvoiceData, InvoiceDocument } from '@/models/invoice';
+import { InvoiceData } from '@/models/invoice';
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,12 +10,10 @@ export async function POST(req: NextRequest) {
     const db = client.db(process.env.MONGODB_DB);
 
     const invoiceData: InvoiceData = await req.json();
-    
-    // Generate a unique ID and format it
     const rawId = nanoid(24).replace(/_|-/g, '');
     const transactionId = `payce${rawId}`;
 
-    const invoice: Omit<InvoiceDocument, '_id'> = {
+    const invoice = {
       ...invoiceData,
       transactionId,
       status: 'pending',
@@ -27,7 +26,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       transactionId,
-      invoiceId: result.insertedId,
+      _id: result.insertedId,
     }, { status: 201 });
 
   } catch (error) {

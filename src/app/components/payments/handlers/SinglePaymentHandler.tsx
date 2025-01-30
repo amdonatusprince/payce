@@ -37,6 +37,7 @@ export const handleSinglePayment = async ({
       recipientAddress: formData.recipientAddress,
       amount: formData.amount,
       recipientName: formData.recipientName,
+      recipientEmail: formData.recipientEmail, 
       reason: formData.reason,
       network: formData.network
     });

@@ -21,7 +21,8 @@ export const payInvoice = async (
       recipient: invoice.invoice.payee,
       payer: invoice.invoice.payer,
       network,
-      transactionId: invoice.transactionId
+      transactionId: invoice.transactionId,
+      invoice
     });
 
     if (paymentResult.success) {

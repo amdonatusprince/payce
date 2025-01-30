@@ -5,7 +5,7 @@ export interface BatchRecipient {
   address: string;
   amount: string;
   recipientName?: string;
-  email?: string;
+  recipientEmail?: string;
   reason?: string;
 }
 
@@ -23,7 +23,7 @@ export const BatchRecipientForm = ({ recipients, onRecipientsChange, currency, n
     address: '',
     amount: '',
     recipientName: '',
-    email: '',
+    recipientEmail: '',
     reason: ''
   });
 
@@ -34,7 +34,7 @@ export const BatchRecipientForm = ({ recipients, onRecipientsChange, currency, n
         address: '',
         amount: '',
         recipientName: '',
-        email: '',
+        recipientEmail: '',
         reason: ''
       });
     }
@@ -137,8 +137,8 @@ export const BatchRecipientForm = ({ recipients, onRecipientsChange, currency, n
               </label>
               <input
                 type="email"
-                value={newRecipient.email}
-                onChange={(e) => updateNewRecipient('email', e.target.value)}
+                value={newRecipient.recipientEmail}
+                onChange={(e) => updateNewRecipient('recipientEmail', e.target.value)}
                 className="w-full p-2.5 border rounded-lg text-sm bg-white"
                 placeholder="Optional"
               />

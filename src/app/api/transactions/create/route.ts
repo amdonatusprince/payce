@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { nanoid } from 'nanoid';
+import { sendPaymentNotification } from '@/lib/email';
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,11 +16,12 @@ export async function POST(req: NextRequest) {
 
     const transaction = {
       ...paymentData,
+      recipientEmail: paymentData.recipientEmail || null,
       transactionId,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-
+    
     const result = await db.collection('transactions').insertOne(transaction);
 
     return NextResponse.json({

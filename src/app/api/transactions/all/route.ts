@@ -34,8 +34,8 @@ export async function GET(req: NextRequest) {
       invoicesCollection
         .find({
           $or: [
-            { "invoice.payer": address },
-            { "invoice.payee": address }
+            { payerAddress: address },
+            { payeeAddress: address }
           ]
         })
         .toArray()
@@ -46,9 +46,9 @@ export async function GET(req: NextRequest) {
       ...payments.map(tx => ({
         ...tx,
         type: 'payment',
-        date: tx.timestamp,
+        date: tx.createdAt,
         amount: tx.amount,
-        currency: tx.currency,
+        currency: tx.currency?.value || tx.currency || 'USDC',
         status: 'completed',
         counterparty: tx.sender === address ? tx.recipient : tx.sender,
         isOutgoing: tx.sender === address
@@ -56,18 +56,25 @@ export async function GET(req: NextRequest) {
       ...invoices.map(invoice => ({
         ...invoice,
         type: 'invoice',
-        date: invoice.timestamp,
-        amount: invoice.invoice.amount,
-        currency: invoice.invoice.currency,
+        date: invoice.createdAt,
+        amount: invoice.expectedAmount,
+        currency: invoice.currency?.value || 'USDC',
         status: invoice.status.toLowerCase(),
-        counterparty: invoice.invoice.payer === address 
-          ? invoice.invoice.payee 
-          : invoice.invoice.payer,
-        isOutgoing: invoice.invoice.payer === address,
-        dueDate: invoice.invoice.dueDate
+        counterparty: invoice.payerAddress === address 
+          ? invoice.payeeAddress 
+          : invoice.payerAddress,
+        isOutgoing: invoice.payerAddress === address,
+        dueDate: invoice.dueDate,
+        reason: invoice.reason,
+        businessName: invoice.contentData?.businessDetails?.name,
+        clientName: invoice.contentData?.clientDetails?.name
       }))
     ]
-    .sort((a, b) => b.date - a.date);
+    .sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateB.getTime() - dateA.getTime();
+    });
 
     // Calculate total pages
     const totalTransactions = allTransactions.length;

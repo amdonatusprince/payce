@@ -75,9 +75,11 @@ export const RecentInvoiceTransactions = () => {
 
   const getInvoiceDetails = (invoice: SolanaInvoice | Types.IRequestData) => {
     if ('invoice' in invoice) {
+      // Convert timestamp to milliseconds if it's in seconds
+      const timestamp = invoice.timestamp * (invoice.timestamp < 1e12 ? 1000 : 1);
       return {
         id: invoice.transactionId,
-        date: format(new Date(invoice.timestamp), 'MMM d, yyyy'),
+        date: format(new Date(timestamp), 'MMM d, yyyy'),
         clientName: invoice.contentData.clientDetails.name,
         amount: `${invoice.invoice.amount} ${invoice.invoice.currency}`,
         status: invoice.status.toLowerCase(),

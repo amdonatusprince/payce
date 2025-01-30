@@ -1,82 +1,71 @@
 "use client";
 
-interface InvoiceData {
-  version: string;
-  timestamp: number;
-  network: string;
-  invoice: {
-    payer: string;
-    payee: string;
-    amount: string;
-    currency: string;
-    dueDate?: string;
-    reason?: string;
+import { InvoiceData } from '@/models/invoice';
+
+interface CreateInvoiceParams {
+  connection: any;
+  walletProvider: any;
+  payerAddress: string;
+  payeeAddress: string;
+  expectedAmount: string;
+  currency: {
+    type: string;
+    value: string;
+    network: string;
+    decimals: number;
   };
-  metadata: {
-    createdAt: string;
-    builderId: string;
-    createdBy: string;
-    [key: string]: any;
-  };
+  dueDate?: string;
+  reason?: string;
   contentData: {
-    transactionType: 'invoice';
-    clientDetails: {
-      name: string;
-      address: string;
-      email: string;
-    };
     businessDetails: {
       name: string;
-      address: string;
       email: string;
+      address: string;
     };
-    paymentDetails: {
-      reason?: string;
-      dueDate?: string;
+    clientDetails: {
+      name: string;
+      email: string;
+      address: string;
+      walletAddress: string;
+    };
+    invoiceDetails: {
+      items: Array<{
+        description: string;
+        amount: number;
+      }>;
+      totalAmount: string;
+      currency: string;
+      dueDate: string;
+      notes?: string;
+    };
+    metadata: {
+      createdAt: string;
+      builderId: string;
+      version: string;
+      createdBy: string;
     };
   };
 }
 
-export const createInvoiceRequest = async (params: any) => {
+export const createInvoiceRequest = async (params: CreateInvoiceParams) => {
   try {
     const invoiceData: InvoiceData = {
-      version: '1.0',
-      timestamp: Date.now(),
-      network: params.currency.network,
-      invoice: {
-        payer: params.payerAddress,
-        payee: params.payeeAddress,
-        amount: params.expectedAmount,
-        currency: params.currency.value,
-        dueDate: params.dueDate,
-        reason: params.reason,
-      },
-      metadata: {
-        createdAt: new Date().toISOString(),
-        builderId: "payce-finance",
-        createdBy: params.payeeAddress,
-        ...params.contentData?.metadata,
-      },
+      payerAddress: params.payerAddress,
+      payeeAddress: params.payeeAddress,
+      expectedAmount: params.expectedAmount,
+      currency: params.currency,
+      dueDate: params.dueDate,
+      reason: params.reason,
       contentData: {
         transactionType: 'invoice',
-        clientDetails: {
-          name: params.contentData.clientDetails.name,
-          address: params.contentData.clientDetails.address,
-          email: params.contentData.clientDetails.email,
-        },
-        businessDetails: {
-          name: params.contentData.businessDetails.name,
-          address: params.contentData.businessDetails.address,
-          email: params.contentData.businessDetails.email,
-        },
-        paymentDetails: {
-          reason: params.reason,
-          dueDate: params.dueDate,
-        }
+        businessDetails: params.contentData.businessDetails,
+        clientDetails: params.contentData.clientDetails,
+        invoiceDetails: params.contentData.invoiceDetails,
+        metadata: params.contentData.metadata
       }
     };
 
-    // Create invoice using our new backend API
+    // Create invoice using our backend API
     const response = await fetch('/api/invoices/create', {
       method: 'POST',
       headers: {
@@ -95,7 +84,49 @@ export const createInvoiceRequest = async (params: any) => {
       throw new Error('No transaction ID returned from server');
     }
 
-    // Return success response with transaction ID
+    // Send notifications for invoice creation
+    const businessEmail = params.contentData.businessDetails.email;
+    const clientEmail = params.contentData.clientDetails.email;
+
+    if (businessEmail || clientEmail) {
+      const notificationData = {
+        amount: params.expectedAmount,
+        currency: params.contentData.invoiceDetails.currency,
+        dueDate: params.dueDate || '',
+        network: params.currency.network,
+        transactionId,
+        businessName: params.contentData.businessDetails.name,
+        clientName: params.contentData.clientDetails.name,
+        items: params.contentData.invoiceDetails.items
+      };
+
+      // Send notifications through API
+      if (businessEmail) {
+        await fetch('/api/notifications/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: businessEmail,
+            type: 'business',
+            ...notificationData
+          })
+        });
+      }
+
+      if (clientEmail) {
+        await fetch('/api/notifications/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: clientEmail,
+            type: 'client',
+            ...notificationData
+          })
+        });
+      }
+    }
+
+    // Return success response with transaction ID and explorer URL
     return {
       transactionId,
       explorerUrl: params.currency.network.toLowerCase().includes('devnet') 
