@@ -26,6 +26,8 @@ export const RecentInvoiceTransactions = () => {
     totalPages: solanaTotalPages
   } = useSolanaInvoices(isSolanaNetwork ? page : 0);
 
+
+
   // Only fetch Request invoices if not on Solana network
   const {
     invoices: requestInvoices,
@@ -37,7 +39,7 @@ export const RecentInvoiceTransactions = () => {
   const invoices = solanaInvoices;
   const isLoading = isSolanaLoading;
   const totalPages = solanaTotalPages;
-
+  
   // Reset page when network changes
   useEffect(() => {
     setPage(1);

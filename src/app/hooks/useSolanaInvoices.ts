@@ -37,41 +37,6 @@ export interface SolanaInvoice {
   explorerUrl?: string;
 }
 
-interface ApiInvoice {
-  _id: string;
-  timestamp: number;
-  transactionId: string;
-  network: string;
-  payerAddress: string;
-  payeeAddress: string;
-  expectedAmount: string;
-  currency: string;
-  dueDate: string;
-  reason: string;
-  contentData: {
-    transactionType: string;
-    businessDetails: {
-      name: string;
-      address: string;
-      email: string;
-    };
-    clientDetails: {
-      name: string;
-      address: string;
-      email: string;
-    };
-    invoiceDetails: {
-      items: Array<{
-        description: string;
-        amount: string;
-      }>;
-    };
-  };
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export const useSolanaInvoices = (page: number = 1, limit: number = 5) => {
   const { address, isConnected } = useAppKitAccount();
   const [invoices, setInvoices] = useState<SolanaInvoice[]>([]);
@@ -95,7 +60,7 @@ export const useSolanaInvoices = (page: number = 1, limit: number = 5) => {
             transactionId: dbInvoice.transactionId,
             network: 'solana',
             payerAddress: dbInvoice.contentData.clientDetails.walletAddress,
-            payeeAddress: dbInvoice.contentData.businessDetails.email,
+            payeeAddress: dbInvoice.contentData.metadata.createdBy,
             expectedAmount: dbInvoice.contentData.invoiceDetails.totalAmount,
             currency: dbInvoice.contentData.invoiceDetails.currency,
             dueDate: dbInvoice.contentData.invoiceDetails.dueDate,

@@ -10,16 +10,16 @@ export const payInvoice = async (
 ) => {
   try {
     onStatusChange?.('pending');
-    if (walletProvider.publicKey.toString() !== invoice.invoice.payer) {
+    if (walletProvider.publicKey.toString() !== invoice.payerAddress) {
       throw new Error('Connected wallet is not the invoice payer');
     }
 
     const paymentResult = await sendInvoicePayment({
       connection,
       walletProvider,
-      amount: invoice.invoice.amount,
-      recipient: invoice.invoice.payee,
-      payer: invoice.invoice.payer,
+      amount: invoice.expectedAmount,
+      recipient: invoice.payeeAddress,
+      payer: invoice.payerAddress,
       network,
       transactionId: invoice.transactionId,
       invoice

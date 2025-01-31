@@ -215,14 +215,16 @@ export function TransactionModal({
                 Client Details
               </h3>
               <div className="space-y-2">
-                {Object.entries(getClientDetails(transaction)).map(([key, value]: [string, any]) => (
-                  <p key={key} className="text-sm text-gray-600">
-                    <span className="font-medium">
-                      {key.charAt(0).toUpperCase() + key.slice(1)}:{' '}
-                    </span>
-                    {String(value) || 'N/A'}
-                  </p>
-                ))}
+                {Object.entries(getClientDetails(transaction))
+                  .slice(0, 3)
+                  .map(([key, value]: [string, any]) => (
+                    <p key={key} className="text-sm text-gray-600">
+                      <span className="font-medium">
+                        {key.charAt(0).toUpperCase() + key.slice(1)}:{' '}
+                      </span>
+                      {String(value) || 'N/A'}
+                    </p>
+                  ))}
               </div>
             </div>
           </div>
