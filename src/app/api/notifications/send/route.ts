@@ -4,24 +4,12 @@ import { createTransport } from 'nodemailer';
 const transporter = createTransport({
     host: process.env.NEXT_PUBLIC_SMTP_HOST,
     port: Number(process.env.NEXT_PUBLIC_SMTP_PORT),
-    secure: false, // for port 587
+    secure: false, 
     auth: {
       user: process.env.NEXT_PUBLIC_SMTP_USER,
       pass: process.env.NEXT_PUBLIC_SMTP_PASSWORD,
     },
   });
-
-// import mg from 'nodemailer-mailgun-transport';
-
-// const auth = {
-//     auth: {
-//       api_key: process.env.MAILGUN_API_KEY!,
-//       domain: process.env.MAILGUN_DOMAIN!
-//     }
-//   };
-  
-//   // Create transporter
-//   const transporter = createTransport(mg(auth));
 
 export async function POST(req: NextRequest) {
   try {

@@ -6,29 +6,29 @@ export interface SolanaInvoice {
   timestamp: number;
   transactionId: string;
   network: string;
-  invoice: {
-    payer: string;
-    payee: string;
-    amount: string;
-    currency: string;
-    dueDate: string;
-    reason: string;
-  };
+  payerAddress: string;
+  payeeAddress: string;
+  expectedAmount: string;
+  currency: string;
+  dueDate: string;
+  reason: string;
   contentData: {
     transactionType: string;
-    clientDetails: {
-      name: string;
-      address: string;
-      email: string;
-    };
     businessDetails: {
       name: string;
       address: string;
       email: string;
     };
-    paymentDetails: {
-      reason: string;
-      dueDate: string;
+    clientDetails: {
+      name: string;
+      address: string;
+      email: string;
+    };
+    invoiceDetails: {
+      items: Array<{
+        description: string;
+        amount: string;
+      }>;
     };
   };
   status: string;
@@ -39,37 +39,37 @@ export interface SolanaInvoice {
 
 interface ApiInvoice {
   _id: string;
+  timestamp: number;
   transactionId: string;
   network: string;
-  invoice: {
-    payer: string;
-    payee: string;
-    amount: string;
-    currency: string;
-    dueDate: string;
-    reason: string;
-  };
+  payerAddress: string;
+  payeeAddress: string;
+  expectedAmount: string;
+  currency: string;
+  dueDate: string;
+  reason: string;
   contentData: {
     transactionType: string;
-    clientDetails: {
-      name: string;
-      address: string;
-      email: string;
-    };
     businessDetails: {
       name: string;
       address: string;
       email: string;
     };
-    paymentDetails: {
-      reason: string;
-      dueDate: string;
+    clientDetails: {
+      name: string;
+      address: string;
+      email: string;
+    };
+    invoiceDetails: {
+      items: Array<{
+        description: string;
+        amount: string;
+      }>;
     };
   };
   status: string;
   createdAt: string;
-  updatedAt?: string;
-  timestamp: number;
+  updatedAt: string;
 }
 
 export const useSolanaInvoices = (page: number = 1, limit: number = 5) => {
@@ -89,39 +89,28 @@ export const useSolanaInvoices = (page: number = 1, limit: number = 5) => {
         );
         const data = await response.json();
         if (data.success) {
-          setInvoices(data.data.map((invoice: ApiInvoice) => ({
-            _id: invoice._id,
-            timestamp: invoice.timestamp,
-            transactionId: invoice.transactionId || '',
-            network: invoice.network || '',
-            invoice: invoice.invoice || {
-              payer: '',
-              payee: '',
-              amount: '',
-              currency: '',
-              dueDate: '',
-              reason: ''
-            },
-            contentData: invoice.contentData || {
-              transactionType: '',
-              clientDetails: {
-                name: '',
-                address: '',
-                email: ''
-              },
-              businessDetails: {
-                name: '',
-                address: '',
-                email: ''
-              },
-              paymentDetails: {
-                reason: '',
-                dueDate: ''
+          setInvoices(data.data.map((dbInvoice: any) => ({
+            _id: dbInvoice._id,
+            timestamp: new Date(dbInvoice.createdAt).getTime(),
+            transactionId: dbInvoice.transactionId,
+            network: 'solana',
+            payerAddress: dbInvoice.contentData.clientDetails.walletAddress,
+            payeeAddress: dbInvoice.contentData.businessDetails.email,
+            expectedAmount: dbInvoice.contentData.invoiceDetails.totalAmount,
+            currency: dbInvoice.contentData.invoiceDetails.currency,
+            dueDate: dbInvoice.contentData.invoiceDetails.dueDate,
+            reason: dbInvoice.contentData.invoiceDetails.notes,
+            contentData: {
+              transactionType: dbInvoice.contentData.transactionType,
+              businessDetails: dbInvoice.contentData.businessDetails,
+              clientDetails: dbInvoice.contentData.clientDetails,
+              invoiceDetails: {
+                items: dbInvoice.contentData.invoiceDetails.items
               }
             },
-            status: invoice.status || '',
-            createdAt: invoice.createdAt || '',
-            updatedAt: invoice.updatedAt || invoice.createdAt || ''
+            status: dbInvoice.status,
+            createdAt: dbInvoice.createdAt,
+            updatedAt: dbInvoice.updatedAt
           })));
           setTotalPages(Math.ceil(data.total / limit));
         }

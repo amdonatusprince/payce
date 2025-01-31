@@ -75,24 +75,59 @@ export const AccountStatement = ({ dateRange }: { dateRange: DateRange }) => {
   }, [address, isConnected, isSolanaNetwork, page]);
 
   const formatAddress = (addr: string) => {
+    if (!addr) return 'Unknown';
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
 
   const getTransactionDetails = (tx: any) => {
     if (isSolanaNetwork) {
-      const amount = Number(tx.amount);
-      const isDebit = tx.isOutgoing || amount < 0;
-      return {
-        date: format(new Date(tx.date), 'MMM d, yyyy'),
-        transactionId: tx.transactionId ? `${tx.transactionId.slice(0, 4)}...${tx.transactionId.slice(-4)}` : '-',
-        type: tx.type,
-        amount: `${isDebit ? '-' : '+'}${Math.abs(amount)} ${tx.currency}`,
-        isDebit,
-        status: tx.status,
-        payer: formatAddress(tx.isOutgoing ? tx.counterparty : address || ''),
-        recipient: formatAddress(tx.isOutgoing ? address || '' : tx.counterparty),
-        dueDate: tx.dueDate ? format(new Date(tx.dueDate), 'MMM d, yyyy') : '-'
-      };
+      if (tx.type === 'invoice') {
+        // Format invoice transaction
+        return {
+          date: format(new Date(tx.date), 'MMM d, yyyy'),
+          transactionId: tx.transactionId || '-',
+          type: 'invoice',
+          amount: `${tx.isOutgoing ? '-' : '+'}${tx.expectedAmount} ${tx.currency}`,
+          isDebit: tx.isOutgoing,
+          status: tx.status,
+          payer: formatAddress(tx.payerAddress),
+          recipient: formatAddress(tx.payeeAddress),
+          dueDate: tx.dueDate ? format(new Date(tx.dueDate), 'MMM d, yyyy') : '-',
+          // Add these fields to match the modal's expected structure
+          invoice: {
+            payer: tx.payerAddress,
+            payee: tx.payeeAddress,
+            amount: tx.expectedAmount,
+            currency: tx.currency,
+            dueDate: tx.dueDate,
+            reason: tx.reason
+          },
+          contentData: {
+            transactionType: 'invoice',
+            businessDetails: tx.contentData?.businessDetails,
+            clientDetails: tx.contentData?.clientDetails,
+            invoiceDetails: tx.contentData?.invoiceDetails
+          }
+        };
+      } else {
+        // Format regular payment transaction
+        return {
+          date: format(new Date(tx.date), 'MMM d, yyyy'),
+          transactionId: tx.transactionId || '-',
+          type: 'payment',
+          amount: `${tx.isOutgoing ? '-' : '+'}${tx.amount} ${tx.currency}`,
+          isDebit: tx.isOutgoing,
+          status: 'completed',
+          payer: formatAddress(tx.sender || tx.counterparty),
+          recipient: formatAddress(tx.recipient || address),
+          dueDate: '-',
+          // Add fields for regular transaction
+          sender: tx.sender,
+          reason: tx.reason,
+          network: tx.network,
+          explorerUrl: tx.explorerUrl
+        };
+      }
     } else {
       const amount = formatUnits(BigInt(tx.expectedAmount), 18);
       const currency = tx.currency.split('-')[0];
@@ -291,6 +326,7 @@ export const AccountStatement = ({ dateRange }: { dateRange: DateRange }) => {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           transaction={selectedTx}
+          isSolanaTransaction={isSolanaNetwork}
         />
       )}
     </div>
