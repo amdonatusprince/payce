@@ -7,6 +7,10 @@ Demo Video: https://youtu.be/uu7GbqnAtQQ
 
 Website URL: https://payce.vercel.app
 
+Get 10 USDC here for testing on devnet: https://faucet.circle.com/
+
+NB: Payce currently supports only Devnet for this demo. Solana Mainnet and Base usage will be live next week after the test is complete
+
 ## Features  
 
 - **Seamless Payments**: Businesses, creators, and merchants can receive payments effortlessly from anyone.  
