@@ -14,6 +14,7 @@ interface BatchPaymentHandlerProps {
   batchRecipients: Array<{
     address: string;
     amount: string;
+    recipientEmail?: string;
     reason?: string;
   }>;
   onStatusChange: (status: string) => void;

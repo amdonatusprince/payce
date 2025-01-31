@@ -1,40 +1,47 @@
 import { ObjectId } from 'mongodb';
 
-export type InvoiceStatus = 'pending' | 'paid';
+export interface InvoiceItem {
+  description: string;
+  amount: number;
+}
 
 export interface InvoiceData {
-  version: string;
-  timestamp: number;
-  network: string;
-  invoice: {
-    payer: string;
-    payee: string;
-    amount: string;
-    currency: string;
-    dueDate?: string;
-    reason?: string;
+  payerAddress: string;
+  expectedAmount: string;
+  currency: {
+    type: string;
+    value: string;
+    network: string;
+    decimals: number;
   };
-  metadata: {
-    createdAt: string;
-    builderId: string;
-    createdBy: string;
-    [key: string]: any;
-  };
+  payeeAddress: string;
+  reason?: string;
+  dueDate?: string;
   contentData: {
     transactionType: 'invoice';
+    businessDetails: {
+      name: string;
+      email: string;
+      address: string;
+    };
     clientDetails: {
       name: string;
+      email: string;
       address: string;
-      email: string
+      walletAddress: string;
     };
-    business:{
-      name: string
-      address: string
-      email: string
-    }
-    paymentDetails: {
-      reason?: string;
-      dueDate?: string;
+    invoiceDetails: {
+      items: InvoiceItem[];
+      totalAmount: string;
+      currency: string;
+      dueDate: string;
+      notes?: string;
+    };
+    metadata: {
+      createdAt: string;
+      builderId: string;
+      version: string;
+      createdBy: string;
     };
   };
 }
@@ -42,7 +49,8 @@ export interface InvoiceData {
 export interface InvoiceDocument extends InvoiceData {
   _id: ObjectId;
   transactionId: string;
-  status: InvoiceStatus;
+  status: 'pending' | 'paid';
   createdAt: Date;
   updatedAt: Date;
+  explorerUrl?: string;
 } 

@@ -65,7 +65,7 @@ export const PaymentForm = () => {
   const { connection } = useAppKitConnection()
   const { walletProvider } = useAppKitProvider<Provider>('solana')
   const isSolanaNetwork = formData.network.toLowerCase().includes('solana');
-
+  
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({
       ...formData,

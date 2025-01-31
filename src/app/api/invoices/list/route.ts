@@ -18,9 +18,10 @@ export async function GET(req: NextRequest) {
     if (address) {
       // Search for address in both payer and payee fields without case sensitivity
       query.$or = [
-        { 'invoice.payer': { $regex: new RegExp(address, 'i') } },
-        { 'invoice.payee': { $regex: new RegExp(address, 'i') } }
+        { 'payerAddress': { $regex: new RegExp(address, 'i') } },
+        { 'payeeAddress': { $regex: new RegExp(address, 'i') } }
       ];
+      // query['contentData.transactionType'] = 'invoice';
     }
 
     // Get total count for pagination

@@ -17,13 +17,14 @@ interface SendPaymentParams {
   recipientAddress: string;
   amount: string;
   recipientName: string;
+  recipientEmail?: string;
   reason: string;
   network: string;
 }
 
 
 export const sendSolanaPayment = async (params: SendPaymentParams) => {
-  const { connection, walletProvider, recipientAddress, amount, recipientName, reason, network } = params;
+  const { connection, walletProvider, recipientAddress, amount, recipientName, recipientEmail, reason, network } = params;
   
   try {
 
@@ -77,20 +78,23 @@ export const sendSolanaPayment = async (params: SendPaymentParams) => {
     const tx = await walletProvider.signAndSendTransaction(transaction);
       console.log("Transaction successful! 🎉");
       
-      // Create initial payment details without status
+      const explorerUrl = network.toLowerCase().includes('devnet') 
+        ? `https://explorer.solana.com/tx/${tx}?cluster=devnet`
+        : `https://explorer.solana.com/tx/${tx}`;
+
+      // Create payment details
       const paymentDetails = {
         recipient: recipientAddress,
         amount: amount,
         sender: walletProvider.publicKey.toString(),
         recipientName: recipientName,
+        recipientEmail: recipientEmail,
         currency: 'USDC',
         network: network,
         transactionType: 'normal',
         reason: reason,
         timestamp: Date.now(),
-        explorerUrl: network.toLowerCase().includes('devnet') 
-          ? `https://explorer.solana.com/tx/${tx}?cluster=devnet`
-          : `https://explorer.solana.com/tx/${tx}`,
+        explorerUrl
       };
 
       // Store transaction in database
@@ -107,6 +111,26 @@ export const sendSolanaPayment = async (params: SendPaymentParams) => {
       }
 
       const { transactionId } = await response.json();
+
+      // Send email notification if recipient email is provided
+      if (recipientEmail) {
+        await fetch('/api/notifications/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: recipientEmail,
+            type: 'received',
+            amount: amount,
+            currency: 'USDC',
+            senderAddress: walletProvider.publicKey.toString(),
+            recipientAddress: recipientAddress,
+            explorerUrl,
+            network,
+            transactionId,
+            reason
+          })
+        });
+      }
 
       return {
         paymentDetails: {

@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     if (status) query.status = status;
     if (address) {
       query.$or = [
-        { 'transaction.payer': { $regex: new RegExp(address, 'i') } },
+        { 'transaction.sender': { $regex: new RegExp(address, 'i') } },
         // { 'transaction.payee': { $regex: new RegExp(address, 'i') } }
       ];
     }

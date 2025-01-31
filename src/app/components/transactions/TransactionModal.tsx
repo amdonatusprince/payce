@@ -45,28 +45,68 @@ export function TransactionModal({
 
   if (!transaction) return null;
 
-  const isSolanaInvoice = (tx: any): tx is SolanaInvoice => "invoice" in tx;
-  const isSolanaTx = (tx: any): tx is SolanaTransaction => {
-    return "transactionType" in tx && "sender" in tx && "recipient" in tx;
-  };
+  const isSolanaInvoice = (tx: any): tx is SolanaInvoice => 
+    tx.contentData?.transactionType === 'invoice';
 
-  const getStatus = (
-    tx: Types.IRequestData | SolanaTransaction | SolanaInvoice
-  ) => {
+  const isSolanaTx = (tx: any): tx is SolanaTransaction => 
+    tx.type === 'payment' || (tx.transactionType === 'normal' && "sender" in tx);
+
+  const getStatus = (tx: any) => {
     if (isSolanaInvoice(tx)) {
-      return tx.status.toLowerCase();
+      return tx.status?.toLowerCase() || 'pending';
     }
     if (isSolanaTx(tx)) {
-      return "paid"; // Solana transactions are always paid when recorded
+      return "completed";
     }
     return getTransactionStatus(tx as Types.IRequestData);
   };
 
   const isPayer = isSolanaInvoice(transaction)
-    ? address === transaction.invoice.payer
+    ? address === transaction.payerAddress
     : isSolanaTx(transaction)
     ? address === transaction.sender
     : address?.toLowerCase() === transaction.payer?.value?.toLowerCase();
+
+  const getAmount = (tx: any) => {
+    if (isSolanaInvoice(tx)) {
+      return `${tx.expectedAmount} ${tx.currency}`;
+    }
+    if (isSolanaTx(tx)) {
+      return `${tx.amount} ${tx.currency}`;
+    }
+    return `${tx.expectedAmount} ${tx.currency?.value || tx.currency}`;
+  };
+
+  const getReason = (tx: any) => {
+    if (isSolanaInvoice(tx)) {
+      return tx.reason || tx.contentData?.invoiceDetails?.items?.[0]?.description || 'No reason provided';
+    }
+    if (isSolanaTx(tx)) {
+      return tx.reason || 'No reason provided';
+    }
+    return tx.contentData?.reason || 'No reason provided';
+  };
+
+  const getBusinessDetails = (tx: any) => {
+    if (isSolanaInvoice(tx)) {
+      return tx.contentData?.businessDetails || {};
+    }
+    return {};
+  };
+
+  const getClientDetails = (tx: any) => {
+    if (isSolanaInvoice(tx)) {
+      return tx.contentData?.clientDetails || {};
+    }
+    return {};
+  };
+
+  const getFormattedDate = (tx: any) => {
+    if (tx.date) return format(new Date(tx.date), "PPP p");
+    if (tx.createdAt) return format(new Date(tx.createdAt), "PPP p");
+    if (tx.timestamp) return format(new Date(tx.timestamp * 1000), "PPP p");
+    return "N/A";
+  };
 
   const handlePayNow = async () => {
     if (!address || !publicClient || !walletClient) return;
@@ -159,17 +199,14 @@ export function TransactionModal({
                 Business Details
               </h3>
               <div className="space-y-2">
-                {transaction.contentData.businessDetails &&
-                  Object.entries(transaction.contentData.businessDetails).map(
-                    ([key, value]: [string, string]) => (
-                      <p key={key} className="text-xs sm:text-sm text-gray-900">
-                        <span className="font-medium">
-                          {key.charAt(0).toUpperCase() + key.slice(1)}:{" "}
-                        </span>
-                        {value || "N/A"}
-                      </p>
-                    )
-                  )}
+                {Object.entries(getBusinessDetails(transaction)).map(([key, value]: [string, any]) => (
+                  <p key={key} className="text-sm text-gray-600">
+                    <span className="font-medium">
+                      {key.charAt(0).toUpperCase() + key.slice(1)}:{' '}
+                    </span>
+                    {String(value) || 'N/A'}
+                  </p>
+                ))}
               </div>
             </div>
             {/* Client Details */}
@@ -178,17 +215,14 @@ export function TransactionModal({
                 Client Details
               </h3>
               <div className="space-y-2">
-                {transaction.contentData.clientDetails &&
-                  Object.entries(transaction.contentData.clientDetails).map(
-                    ([key, value]) => (
-                      <p key={key} className="text-xs sm:text-sm text-gray-900">
-                        <span className="font-medium">
-                          {key.charAt(0).toUpperCase() + key.slice(1)}:{" "}
-                        </span>
-                        {value || "N/A"}
-                      </p>
-                    )
-                  )}
+                {Object.entries(getClientDetails(transaction)).map(([key, value]: [string, any]) => (
+                  <p key={key} className="text-sm text-gray-600">
+                    <span className="font-medium">
+                      {key.charAt(0).toUpperCase() + key.slice(1)}:{' '}
+                    </span>
+                    {String(value) || 'N/A'}
+                  </p>
+                ))}
               </div>
             </div>
           </div>
@@ -225,24 +259,16 @@ export function TransactionModal({
               {/* Amount and Status */}
               <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
                 <div className="text-2xl sm:text-3xl font-bold text-white">
-                  {isSolanaTx(transaction)
-                    ? `${transaction.amount} ${transaction.currency}`
-                    : isSolanaInvoice(transaction)
-                    ? `${transaction.invoice.amount} ${transaction.invoice.currency}`
-                    : null}
+                  {getAmount(transaction)}
                 </div>
                 <span
                   className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
-                    isSolanaTx(transaction)
+                    getStatus(transaction) === 'paid' || getStatus(transaction) === 'completed'
                       ? "bg-green-100 text-green-800"
                       : "bg-yellow-100 text-yellow-800"
                   }`}
                 >
-                  {isSolanaTx(transaction)
-                    ? "Paid"
-                    : isSolanaInvoice(transaction)
-                    ? transaction.status
-                    : null}
+                  {getStatus(transaction)}
                 </span>
               </div>
             </div>
@@ -281,27 +307,27 @@ export function TransactionModal({
               {/* Transaction Summary */}
               <div className="bg-gray-50 rounded-xl p-4 sm:p-6 space-y-4">
                 <h3 className="text-sm font-medium text-gray-900">
-                  Transaction Participants
+                  Transaction Details
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <p className="text-xs text-gray-500">Sender/Payer</p>
+                    <p className="text-xs text-gray-500">From</p>
                     <p className="text-sm font-medium break-all p-3 bg-white rounded-lg border border-gray-100">
-                      {isSolanaInvoice(transaction)
-                        ? transaction.invoice.payer
+                      {isSolanaInvoice(transaction) 
+                        ? transaction.payerAddress 
                         : isSolanaTx(transaction)
                         ? transaction.sender
-                        : transaction.payer?.value || "N/A"}
+                        : transaction.payer?.value || 'Unknown'}
                     </p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-xs text-gray-500">Recipient/Payee</p>
+                    <p className="text-xs text-gray-500">To</p>
                     <p className="text-sm font-medium break-all p-3 bg-white rounded-lg border border-gray-100">
-                      {isSolanaInvoice(transaction)
-                        ? transaction.invoice.payee
+                      {isSolanaInvoice(transaction) 
+                        ? transaction.payeeAddress 
                         : isSolanaTx(transaction)
                         ? transaction.recipient
-                        : transaction.payee?.value || "N/A"}
+                        : transaction.payee?.value || 'Unknown'}
                     </p>
                   </div>
                 </div>
@@ -323,11 +349,11 @@ export function TransactionModal({
                           <div className="space-y-2">
                             <p className="text-sm text-gray-600">
                               <span className="font-medium">Reason: </span>
-                              {transaction.reason || "N/A"}
+                              {getReason(transaction)}
                             </p>
                             <p className="text-sm text-gray-600">
                               <span className="font-medium">Network: </span>
-                              {transaction.network || "N/A"}
+                              {transaction.network || 'Solana'}
                             </p>
                             <a
                               href={transaction.explorerUrl}
@@ -362,7 +388,7 @@ export function TransactionModal({
                               Date & Time
                             </dt>
                             <dd className="mt-1 text-sm text-gray-900">
-                              {format(new Date(transaction.timestamp), "PPP p")}
+                              {getFormattedDate(transaction)}
                             </dd>
                           </div>
                           <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
@@ -393,11 +419,11 @@ export function TransactionModal({
                             <div className="space-y-2">
                               <p className="text-sm text-gray-600">
                                 <span className="font-medium">Due Date: </span>
-                                {format(new Date(transaction.invoice.dueDate), "PPP")}
+                                {transaction.dueDate ? format(new Date(transaction.dueDate), 'PPP') : 'N/A'}
                               </p>
                               <p className="text-sm text-gray-600">
                                 <span className="font-medium">Reason: </span>
-                                {transaction.invoice.reason}
+                                {getReason(transaction)}
                               </p>
                               <p className="text-sm text-gray-600">
                                 <span className="font-medium">Network: </span>
@@ -425,10 +451,7 @@ export function TransactionModal({
                                 <span className="font-medium">
                                   Date Created:{" "}
                                 </span>
-                                {format(
-                                  new Date(transaction.timestamp),
-                                  "PPP p"
-                                )}
+                                {getFormattedDate(transaction)}
                               </p>
                               <p className="text-sm text-gray-600">
                                 <span className="font-medium">

@@ -62,6 +62,71 @@ export const RecentInflowTransactions = () => {
     return parseFloat(formatUnits(BigInt(amount.toString()), decimals));
   };
 
+  const formatAddress = (address: string | undefined) => {
+    if (!address) return 'Unknown';
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const getAmount = (tx: any) => {
+    if (isSolanaNetwork) {
+      if (tx.invoice) {
+        return `${tx.invoice.amount} ${tx.invoice.currency}`;
+      }
+      return `${tx.amount} ${tx.currency}`;
+    }
+    return `${formatAmount(tx.expectedAmount)} ${formatCurrency(tx.currency)}`;
+  };
+  
+  const getSenderAddress = (tx: any) => {
+    if (isSolanaNetwork) {
+      if (tx.invoice) {
+        return formatAddress(tx.invoice.payer);
+      }
+      return formatAddress(tx.sender);
+    }
+    return formatAddress(tx.payer?.value);
+  };
+  
+  const getReason = (tx: any) => {
+    if (isSolanaNetwork) {
+      if (tx.invoice) {
+        return tx.invoice.reason || tx.contentData?.paymentDetails?.reason || 'No reason provided';
+      }
+      return tx.reason || 'No reason provided';
+    }
+    return tx.contentData?.reason || 'No reason provided';
+  };
+  
+  const getTimestamp = (tx: any) => {
+    if (isSolanaNetwork) {
+      return new Date(tx.createdAt || tx.timestamp);
+    }
+    return new Date(tx.timestamp * 1000);
+  };
+  
+  const formatTransactionForModal = (tx: any) => {
+    if (isSolanaNetwork) {
+      if (tx.invoice) {
+        return {
+          ...tx,
+          expectedAmount: tx.invoice.amount,
+          currency: tx.invoice.currency,
+          payerAddress: tx.invoice.payer,
+          payeeAddress: tx.invoice.payee,
+          reason: tx.invoice.reason || tx.contentData?.paymentDetails?.reason,
+          dueDate: tx.invoice.dueDate || tx.contentData?.paymentDetails?.dueDate,
+          type: 'invoice',
+          contentData: {
+            ...tx.contentData,
+            reason: tx.invoice.reason || tx.contentData?.paymentDetails?.reason
+          }
+        };
+      }
+      return tx;
+    }
+    return tx;
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-sm">
       <div className="p-4 sm:p-6 border-b">
@@ -105,7 +170,7 @@ export const RecentInflowTransactions = () => {
               key={isSolanaNetwork ? tx.transactionId : tx.requestId} 
               className="p-3 sm:p-4 hover:bg-gray-50 cursor-pointer"
               onClick={() => {
-                setSelectedTx(tx);
+                setSelectedTx(formatTransactionForModal(tx));
                 setIsModalOpen(true);
               }}
             >
@@ -116,23 +181,19 @@ export const RecentInflowTransactions = () => {
                   </div>
                   <div className="min-w-0">
                     <p className="font-medium text-sm sm:text-base truncate">
-                      {isSolanaNetwork ? tx.reason : tx.contentData?.reason || 'No reason provided'}
+                      {getReason(tx)}
                     </p>
                     <p className="text-xs sm:text-sm text-gray-600 truncate">
-                      From: {isSolanaNetwork 
-                        ? `${tx.sender.slice(0, 6)}...${tx.sender.slice(-4)}`
-                        : `${tx.payer?.value.slice(0, 6)}...${tx.payer?.value.slice(-4)}`}
+                      From: {getSenderAddress(tx)}
                     </p>
                   </div>
                 </div>
                 <div className="text-right flex-shrink-0">
                   <p className="font-semibold text-green-600 text-sm sm:text-base">
-                    +{isSolanaNetwork 
-                      ? `${tx.amount} ${tx.currency}`
-                      : `${formatAmount(tx.expectedAmount)} ${formatCurrency(tx.currency)}`}
+                    +{getAmount(tx)}
                   </p>
                   <p className="text-xs sm:text-sm text-gray-600">
-                    {format(new Date(isSolanaNetwork ? tx.timestamp : tx.timestamp * 1000), 'MMM d, yyyy')}
+                    {format(getTimestamp(tx), 'MMM d, yyyy')}
                   </p>
                 </div>
               </div>
@@ -147,6 +208,7 @@ export const RecentInflowTransactions = () => {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           transaction={selectedTx}
+          isSolanaTransaction={isSolanaNetwork}
         />
       )}
     </div>

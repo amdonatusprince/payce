@@ -2,6 +2,7 @@ import { PublicKey, Transaction } from '@solana/web3.js';
 import { createTransferInstruction } from '@solana/spl-token';
 import { getAssociatedTokenAddress } from '@solana/spl-token';
 import { USDC_MINT } from '@/lib/constants';
+import { sendPaymentNotification } from '@/lib/email';
 
 interface SendInvoicePaymentParams {
   connection: any;
@@ -11,7 +12,17 @@ interface SendInvoicePaymentParams {
   payer: string;
   network: string;
   transactionId: string;
+  invoice: any;
 }
+
+const sendNotification = async (notificationData: any) => {
+  const response = await fetch('/api/notifications/send', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(notificationData)
+  });
+  return response.json();
+};
 
 export const sendInvoicePayment = async ({
   connection,
@@ -20,7 +31,8 @@ export const sendInvoicePayment = async ({
   recipient,
   payer,
   network,
-  transactionId
+  transactionId,
+  invoice
 }: SendInvoicePaymentParams) => {
   try {
     const sender = walletProvider.publicKey;
@@ -68,12 +80,46 @@ export const sendInvoicePayment = async ({
       throw new Error('Failed to update invoice status');
     }
 
-    return {
-      success: true,
-      transactionId: tx,
-      explorerUrl
-    };
+    if (updateResponse.ok) {
+      const businessEmail = invoice.contentData.businessDetails.email;
+      const clientEmail = invoice.contentData.clientDetails.email;
 
+      if (businessEmail || clientEmail) {
+        const notificationData = {
+          amount: amount.toString(),
+          currency: invoice.contentData.invoiceDetails.currency,
+          senderAddress: payer,
+          recipientAddress: recipient,
+          explorerUrl: explorerUrl,
+          network,
+          transactionId
+        };
+
+        if (businessEmail) {
+          await sendNotification({
+            to: businessEmail,
+            type: 'received',
+            ...notificationData
+          });
+        }
+
+        if (clientEmail) {
+          await sendNotification({
+            to: clientEmail,
+            type: 'sent',
+            ...notificationData
+          });
+        }
+      }
+
+      return {
+        success: true,
+        transactionId: tx,
+        explorerUrl
+      };
+    }
+
+    throw new Error('Payment failed');
   } catch (error) {
     console.error('Payment Error:', error);
     return {

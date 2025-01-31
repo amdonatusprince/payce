@@ -13,7 +13,7 @@ export const RecentInvoiceTransactions = () => {
   const { isConnected } = useAppKitAccount();
   const { caipNetwork } = useAppKitNetwork();
   const [page, setPage] = useState(1);
-  const [selectedTx, setSelectedTx] = useState<Types.IRequestData | SolanaInvoice | null>(null);
+  const [selectedTx, setSelectedTx] = useState<SolanaInvoice | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Check if network is Solana (either mainnet or devnet)
@@ -33,10 +33,10 @@ export const RecentInvoiceTransactions = () => {
     totalPages: requestTotalPages
   } = useRequestInvoices(!isSolanaNetwork ? page : 0);
 
-  // Use appropriate data based on network
-  const invoices = isSolanaNetwork ? solanaInvoices : requestInvoices;
-  const isLoading = isSolanaNetwork ? isSolanaLoading : isRequestLoading;
-  const totalPages = isSolanaNetwork ? solanaTotalPages : requestTotalPages;
+  // Use only solanaInvoices
+  const invoices = solanaInvoices;
+  const isLoading = isSolanaLoading;
+  const totalPages = solanaTotalPages;
 
   // Reset page when network changes
   useEffect(() => {
@@ -48,8 +48,7 @@ export const RecentInvoiceTransactions = () => {
   };
 
   const getStatus = (invoice: any) => {
-    // If it's a Solana invoice
-    if ('status' in invoice) {
+    if ('contentData' in invoice) {
       return invoice.status.toLowerCase();
     }
     
@@ -67,31 +66,44 @@ export const RecentInvoiceTransactions = () => {
   };
 
   const getInvoiceAmount = (invoice: SolanaInvoice | Types.IRequestData) => {
-    if ('expectedAmount' in invoice) {
-      return `${formatAmount(invoice.expectedAmount)} ${formatCurrency(invoice.currency)}`;
+    if ('contentData' in invoice) {
+      return `${invoice.expectedAmount} ${invoice.currency}`;
     }
-    return `${invoice.invoice.amount} ${invoice.invoice.currency}`;
+    return `${formatAmount((invoice as Types.IRequestData).expectedAmount)} ${formatCurrency((invoice as Types.IRequestData).currency)}`;
   };
 
-  const getInvoiceDetails = (invoice: SolanaInvoice | Types.IRequestData) => {
-    if ('invoice' in invoice) {
-      return {
-        id: invoice.transactionId,
-        date: format(new Date(invoice.timestamp), 'MMM d, yyyy'),
-        clientName: invoice.contentData.clientDetails.name,
-        amount: `${invoice.invoice.amount} ${invoice.invoice.currency}`,
-        status: invoice.status.toLowerCase(),
-        dueDate: invoice.invoice.dueDate
-      };
-    }
+  const getInvoiceDetails = (invoice: SolanaInvoice) => {
     return {
-      id: invoice.requestId,
-      date: format(new Date(invoice.timestamp * 1000), 'MMM d, yyyy'),
-      clientName: invoice.contentData?.clientDetails?.name || 'Unknown Client',
-      amount: `${formatAmount(invoice.expectedAmount)} ${formatCurrency(invoice.currency)}`,
-      status: getStatus(invoice),
-      dueDate: invoice.contentData?.dueDate
+      date: format(new Date(invoice.createdAt), 'MMM d, yyyy'),
+      transactionId: invoice.transactionId,
+      type: 'invoice',
+      amount: `${invoice.expectedAmount} ${invoice.currency}`,
+      // isDebit: address === invoice.payerAddress,
+      status: invoice.status.toLowerCase(),
+      payer: formatId(invoice.payerAddress),
+      recipient: formatId(invoice.payeeAddress),
+      dueDate: invoice.dueDate ? format(new Date(invoice.dueDate), 'MMM d, yyyy') : '-',
+      invoice: {
+        payer: invoice.payerAddress,
+        payee: invoice.payeeAddress,
+        amount: invoice.expectedAmount,
+        currency: invoice.currency,
+        dueDate: invoice.dueDate,
+        reason: invoice.reason
+      },
+      contentData: {
+        transactionType: 'invoice',
+        businessDetails: invoice.contentData.businessDetails,
+        clientDetails: invoice.contentData.clientDetails,
+        invoiceDetails: invoice.contentData.invoiceDetails
+      }
     };
+  };
+
+  // Add a helper function for safe ID formatting
+  const formatId = (id: string | undefined) => {
+    if (!id) return 'Unknown';
+    return `${id.slice(0, 6)}...${id.slice(-4)}`;
   };
 
   if (isLoading) {
@@ -167,9 +179,22 @@ export const RecentInvoiceTransactions = () => {
               const details = getInvoiceDetails(invoice);
               return (
                 <tr 
-                  key={details.id}
+                  key={invoice.transactionId}
                   onClick={() => {
-                    setSelectedTx(invoice);
+                    setSelectedTx({
+                      ...invoice,
+                      contentData: invoice.contentData,
+                      payerAddress: invoice.payerAddress,
+                      payeeAddress: invoice.payeeAddress,
+                      expectedAmount: invoice.expectedAmount,
+                      currency: invoice.currency,
+                      status: invoice.status,
+                      dueDate: invoice.dueDate,
+                      reason: invoice.reason,
+                      network: invoice.network,
+                      timestamp: invoice.timestamp,
+                      transactionId: invoice.transactionId
+                    });
                     setIsModalOpen(true);
                   }}
                   className="hover:bg-gray-50 cursor-pointer"
@@ -178,10 +203,10 @@ export const RecentInvoiceTransactions = () => {
                     {details.date}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {`${details.id.slice(0, 6)}...${details.id.slice(-4)}`}
+                    {formatId(details.transactionId)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {details.clientName}
+                    {details.contentData.clientDetails.name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {details.amount}
@@ -215,9 +240,22 @@ export const RecentInvoiceTransactions = () => {
           const details = getInvoiceDetails(invoice);
           return (
             <div
-              key={details.id}
+              key={details.transactionId}
               onClick={() => {
-                setSelectedTx(invoice);
+                setSelectedTx({
+                  ...invoice,
+                  contentData: invoice.contentData,
+                  payerAddress: invoice.payerAddress,
+                  payeeAddress: invoice.payeeAddress,
+                  expectedAmount: invoice.expectedAmount,
+                  currency: invoice.currency,
+                  status: invoice.status,
+                  dueDate: invoice.dueDate,
+                  reason: invoice.reason,
+                  network: invoice.network,
+                  timestamp: invoice.timestamp,
+                  transactionId: invoice.transactionId
+                });
                 setIsModalOpen(true);
               }}
               className="p-3 hover:bg-gray-50 cursor-pointer"
@@ -240,7 +278,7 @@ export const RecentInvoiceTransactions = () => {
               <div className="space-y-1">
                 <div className="flex justify-between items-baseline gap-2">
                   <div className="text-xs font-medium text-gray-900 truncate flex-1">
-                    {details.clientName}
+                    {details.contentData.clientDetails.name}
                   </div>
                   <div className="text-xs font-medium whitespace-nowrap">
                     {details.amount}
@@ -254,7 +292,7 @@ export const RecentInvoiceTransactions = () => {
                       : 'No due date'}
                   </div>
                   <div className="whitespace-nowrap">
-                    {details.id.slice(0, 6)}
+                    {formatId(details.transactionId)}
                   </div>
                 </div>
               </div>

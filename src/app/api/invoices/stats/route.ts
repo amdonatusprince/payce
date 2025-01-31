@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     }
 
     const client = await clientPromise;
-    const db = client.db("payce"); 
+    const db = client.db(process.env.MONGODB_DB); 
     const collection = db.collection("invoices");
 
     // Get pending invoices (outstanding) where user is payer or payee
@@ -22,8 +22,8 @@ export async function GET(req: NextRequest) {
       .find({ 
         status: "pending",
         $or: [
-          { "invoice.payer": address },
-          { "invoice.payee": address }
+          { payerAddress: address },
+          { payeeAddress: address }
         ]
       })
       .toArray();
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
       .find({ 
         status: "paid",
         $or: [
-          { "invoice.payer": address }
+          { payerAddress: address }
         ]
       })
       .toArray();
@@ -43,22 +43,27 @@ export async function GET(req: NextRequest) {
     const overdueResult = await collection
       .find({
         status: "pending",
-        "invoice.dueDate": { $lt: currentDate },
+        dueDate: { $lt: currentDate },
         $or: [
-          { "invoice.payer": address },
-          { "invoice.payee": address }
+          { payerAddress: address },
+          { payeeAddress: address }
         ]
       })
       .toArray();
 
     // Calculate totals
     const outstandingTotal = outstandingResult.reduce(
-      (sum, invoice) => sum + (Number(invoice.invoice?.amount) || 0),
+      (sum, invoice) => sum + (Number(invoice.expectedAmount) || 0),
       0
     );
 
     const paidTotal = paidResult.reduce(
-      (sum, invoice) => sum + (Number(invoice.invoice?.amount) || 0),
+      (sum, invoice) => sum + (Number(invoice.expectedAmount) || 0),
+      0
+    );
+
+    const overdueTotal = overdueResult.reduce(
+      (sum, invoice) => sum + (Number(invoice.expectedAmount) || 0),
       0
     );
 
@@ -74,10 +79,10 @@ export async function GET(req: NextRequest) {
           count: paidResult.length
         },
         overdue: {
+          amount: overdueTotal,
           count: overdueResult.length
         }
-      },
-    //   debug: { allInvoices } 
+      }
     });
 
   } catch (error) {

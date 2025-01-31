@@ -11,11 +11,11 @@ export const NetworkSelector = () => {
       <h3 className="text-lg font-medium">Supported Networks</h3>
       
       <div className="space-y-4">
-        {/* Network Cards Container - Always Side by Side with better spacing */}
+        {/* Network Cards Container - Responsive Design */}
         <div className="grid grid-cols-2 gap-4 md:gap-6">
           {/* Solana Network Card */}
-          <div className="bg-white rounded-xl border-2 p-4 md:p-5 w-full">
-            <div className="flex items-start space-x-3 md:space-x-4">
+          <div className="bg-white rounded-xl border-2 p-3 md:p-5 w-full">
+            <div className="flex flex-col md:flex-row items-center md:items-start space-y-2 md:space-y-0 md:space-x-4">
               <div className="w-8 h-8 md:w-10 md:h-10 relative flex-shrink-0">
                 <Image
                   src="/solana_logo.svg"
@@ -24,8 +24,8 @@ export const NetworkSelector = () => {
                   className="object-contain"
                 />
               </div>
-              <div className="flex-1">
-                <h4 className="font-medium text-base md:text-lg whitespace-nowrap">Solana</h4>
+              <div className="flex-1 text-center md:text-left">
+                <h4 className="font-medium text-sm md:text-lg whitespace-nowrap">Solana</h4>
                 <p className="hidden lg:block text-sm md:text-base text-gray-500 whitespace-normal">
                   High-performance blockchain
                 </p>
@@ -34,8 +34,8 @@ export const NetworkSelector = () => {
           </div>
 
           {/* Base Network Card */}
-          <div className="bg-white rounded-xl border-2 p-4 md:p-5 w-full">
-            <div className="flex items-start space-x-3 md:space-x-4">
+          <div className="bg-white rounded-xl border-2 p-3 md:p-5 w-full">
+            <div className="flex flex-col md:flex-row items-center md:items-start space-y-2 md:space-y-0 md:space-x-4">
               <div className="w-8 h-8 md:w-10 md:h-10 relative flex-shrink-0">
                 <Image
                   src="/base_logo.svg"
@@ -44,8 +44,8 @@ export const NetworkSelector = () => {
                   className="object-contain"
                 />
               </div>
-              <div className="flex-1">
-                <h4 className="font-medium text-base md:text-lg whitespace-nowrap">Base</h4>
+              <div className="flex-1 text-center md:text-left">
+                <h4 className="font-medium text-sm md:text-lg whitespace-nowrap">Base</h4>
                 <p className="hidden lg:block text-sm md:text-base text-gray-500 whitespace-normal">
                   Ethereum L2 solution
                 </p>
@@ -58,7 +58,7 @@ export const NetworkSelector = () => {
         <div className="bg-white rounded-lg border p-4 md:p-5">
           <div className="flex flex-col items-center text-center gap-4">
             {!isConnected && (
-              <div>
+              <div className="hidden md:block">
                 <p className="font-medium text-base md:text-lg">Connect Wallet</p>
                 <p className="text-sm md:text-base text-gray-600">
                   Connect your wallet to interact with both networks

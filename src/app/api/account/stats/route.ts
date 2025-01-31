@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     }
 
     const client = await clientPromise;
-    const db = client.db("payce");
+    const db = client.db(process.env.MONGODB_DB);
     const transactionsCollection = db.collection("transactions");
     const invoicesCollection = db.collection("invoices");
 
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
         invoicesCollection
           .find({ 
             status: "paid",
-            "invoice.payee": address 
+            payeeAddress: address 
           })
           .toArray()
       ]),
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
         invoicesCollection
           .find({ 
             status: "paid",
-            "invoice.payer": address 
+            payerAddress: address 
           })
           .toArray()
       ]),
@@ -48,14 +48,14 @@ export async function GET(req: NextRequest) {
       invoicesCollection
         .find({ 
           status: "pending",
-          "invoice.payee": address 
+          payeeAddress: address 
         })
         .toArray(),
       // Pending Outflows (pending invoices where user is payer)
       invoicesCollection
         .find({ 
           status: "pending",
-          "invoice.payer": address 
+          payerAddress: address 
         })
         .toArray()
     ]);
@@ -63,21 +63,21 @@ export async function GET(req: NextRequest) {
     // Calculate totals
     const inflowTotal = [
       ...inflows[0].map(tx => Number(tx.amount) || 0),
-      ...inflows[1].map(invoice => Number(invoice.invoice?.amount) || 0)
+      ...inflows[1].map(invoice => Number(invoice.expectedAmount) || 0)
     ].reduce((sum, amount) => sum + amount, 0);
 
     const outflowTotal = [
       ...outflows[0].map(tx => Number(tx.amount) || 0),
-      ...outflows[1].map(invoice => Number(invoice.invoice?.amount) || 0)
+      ...outflows[1].map(invoice => Number(invoice.expectedAmount) || 0)
     ].reduce((sum, amount) => sum + amount, 0);
 
     const pendingInflowTotal = pendingInflows.reduce(
-      (sum, invoice) => sum + (Number(invoice.invoice?.amount) || 0), 
+      (sum, invoice) => sum + (Number(invoice.expectedAmount) || 0), 
       0
     );
 
     const pendingOutflowTotal = pendingOutflows.reduce(
-      (sum, invoice) => sum + (Number(invoice.invoice?.amount) || 0), 
+      (sum, invoice) => sum + (Number(invoice.expectedAmount) || 0), 
       0
     );
 

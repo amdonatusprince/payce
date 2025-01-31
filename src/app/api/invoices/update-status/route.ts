@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     }
 
     const client = await clientPromise;
-    const db = client.db("payce");
+    const db = client.db(process.env.MONGODB_DB);
     const collection = db.collection("invoices");
 
     const result = await collection.updateOne(

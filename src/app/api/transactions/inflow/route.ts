@@ -24,42 +24,68 @@ export async function GET(req: NextRequest) {
       // Regular transactions where user is recipient
       transactionsCollection
         .find({ 
-          recipient: address 
+          recipient: address,
+          transactionType: 'normal'
         })
-        .sort({ timestamp: -1 })
+        .sort({ createdAt: -1 })
         .toArray(),
 
       // Paid invoices where user is payee
       invoicesCollection
         .find({ 
           status: "paid",
-          "invoice.payee": address 
+          payeeAddress: address,
+          'contentData.transactionType': 'invoice'
         })
-        .sort({ timestamp: -1 })
+        .sort({ createdAt: -1 })
         .toArray()
     ]);
 
-    // Combine and format all inflow transactions
-    const allInflows = [
+    // Format the transactions to match the expected structure
+    const formattedInflows = [
       ...transactions.map(tx => ({
-        ...tx,
-        type: 'payment',
-        amount: tx.amount,
-        currency: tx.currency,
-        timestamp: tx.timestamp,
+        _id: tx._id,
+        transactionId: tx.transactionId,
+        timestamp: new Date(tx.createdAt).getTime(),
         sender: tx.sender,
         recipient: tx.recipient,
-        reason: tx.reason || 'Payment received'
+        amount: tx.amount,
+        currency: tx.currency,
+        network: tx.network,
+        reason: tx.reason,
+        recipientName: tx.recipientName,
+        recipientEmail: tx.recipientEmail,
+        explorerUrl: tx.explorerUrl,
+        transactionType: 'normal',
+        createdAt: tx.createdAt,
+        updatedAt: tx.updatedAt
       })),
       ...paidInvoices.map(invoice => ({
-        ...invoice,
-        type: 'invoice',
-        amount: invoice.invoice.amount,
-        currency: invoice.invoice.currency,
-        timestamp: invoice.timestamp,
-        sender: invoice.invoice.payer,
-        recipient: invoice.invoice.payee,
-        reason: invoice.contentData?.reason || 'Invoice payment received'
+        _id: invoice._id,
+        transactionId: invoice.transactionId,
+        timestamp: new Date(invoice.createdAt).getTime(),
+        invoice: {
+          payer: invoice.payerAddress,
+          payee: invoice.payeeAddress,
+          amount: invoice.expectedAmount,
+          currency: invoice.currency.value,
+          dueDate: invoice.dueDate,
+          reason: invoice.reason
+        },
+        contentData: {
+          transactionType: 'invoice',
+          businessDetails: invoice.contentData.businessDetails,
+          clientDetails: invoice.contentData.clientDetails,
+          paymentDetails: {
+            reason: invoice.reason,
+            dueDate: invoice.dueDate
+          }
+        },
+        status: invoice.status,
+        network: invoice.currency.network,
+        explorerUrl: invoice.explorerUrl,
+        createdAt: invoice.createdAt,
+        updatedAt: invoice.updatedAt
       }))
     ]
     .sort((a, b) => b.timestamp - a.timestamp)
@@ -67,7 +93,12 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: allInflows
+      data: formattedInflows,
+      metadata: {
+        payments: transactions.length,
+        invoices: paidInvoices.length,
+        total: formattedInflows.length
+      }
     });
 
   } catch (error) {

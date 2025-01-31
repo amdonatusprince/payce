@@ -56,10 +56,10 @@ export const RecentPaymentTransactions = () => {
       return {
         id: tx._id,
         date: format(new Date(tx.timestamp), 'MMM d, yyyy'),
-        amount: tx.invoice.amount,
-        currency: tx.invoice.currency,
-        recipient: tx.invoice.payee,
-        reason: tx.invoice.reason || 'No reason provided'
+        amount: tx.expectedAmount,
+        currency: tx.currency,
+        recipient: tx.payeeAddress,
+        reason: tx.reason || 'No reason provided'
       };
     }
     if (isSolanaTx(tx)) {
