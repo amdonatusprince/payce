@@ -18,7 +18,8 @@ NB: Payce currently supports only Devnet for this demo. Solana Mainnet and Base 
 - **Invoice Creation**: Businesses and merchants can generate invoices for their customers directly on Payce, making managing billing and payment collection easy.    
 - **Transaction Insights**:  
   - Payce consumes data from the network to display comprehensive transaction history.  
-  - Includes enriched transaction metadata for robust account statements.  
+  - Includes enriched transaction metadata for robust account statements.
+- **Email Notifications**:  Payce sends tailored email notifications to affected parties when an invoice is created, paid, or when a payment is received. Users also get notified of pending payments and invoices etc
 
 ## Next Steps  
 
