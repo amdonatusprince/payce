@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
           
           <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin: 16px 0;">
             <ul style="list-style: none; padding: 0;">
-              <li><strong>Amount:</strong> ${amount} ${currency}</li>
+              <li><strong>Amount:</strong> ${amount} USDC</li>
               <li><strong>Network:</strong> ${network}</li>
               <li><strong>${isSender ? 'To' : 'From'}:</strong> ${isSender ? recipientAddress : senderAddress}</li>
             </ul>
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
           </p>
         </div>
       `;
-      subject = `Payment ${isSender ? 'Sent' : 'Received'}: ${amount} ${currency}`;
+      subject = `Payment ${isSender ? 'Sent' : 'Received'}: ${amount} USDC`;
     }
 
     console.log('Sending email with config:', {
